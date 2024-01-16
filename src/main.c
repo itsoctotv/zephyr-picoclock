@@ -63,7 +63,7 @@ int main() {
         //write current buffer/char to display
         
         int ret = display_write(dev, x, y, &buf_desc, buf);
-        x+=5;
+        x += 5;
         character++;
         if(ret != 0){
             break; //just for testing
