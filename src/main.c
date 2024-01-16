@@ -1,79 +1,100 @@
 #include <string.h>
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/device.h>
 
+#include "font.h"
+
 struct display_capabilities caps;
-uint8_t buf[7] = {};
+
+uint8_t buf[7] = { };
 struct display_buffer_descriptor buf_desc = {
     .buf_size = sizeof(buf),
-    .width = 4,
+    .width = 8,
     .height = 7,
-    .pitch = 4,
+    .pitch = 8,
 };
 
+ 
 int main() {
-    int ret;
 
     const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
-    if (!dev) {
-        printk("Display device not ready\n");
-        return 0;
-    }
+    
     display_get_capabilities(dev, &caps);
-    if (!(caps.supported_pixel_formats & PIXEL_FORMAT_MONO01)) {
-        printk("Expected pixel format not supported\n");
-        return 0;
-    }
+    
 
-    ret = display_set_pixel_format(dev, PIXEL_FORMAT_MONO01);
-    if (ret < 0) {
-        printk("display_set_pixel_format failed: %d\n", ret);
-    }
-
+    display_set_pixel_format(dev, PIXEL_FORMAT_MONO01);
+    
     // set buffer and write to display (hopefully)
     int x = 0;
     int y = 0;
 
-    while (1) {
-        // clears first 5x7 char
-        memset(buf, 0x00, sizeof(buf));
-        ret = display_write(dev, x, y, &buf_desc, buf);
-        if (ret < 0) {
-            printk("display_write failed: %d\n", ret);
+    printf("x res: %d\ny res: %d\n",caps.x_resolution, caps.y_resolution);
+
+    //clear the screen
+    for(int i = 0; i < caps.x_resolution; i++){
+        
+        memset(buf,0x00, sizeof(buf));
+        display_write(dev, i, y, &buf_desc, buf);
+    }
+    int character = 0;
+    while(1){
+        k_msleep(150);
+        for(int i = 0; i < sizeof(FONT[0]); i++){
+                
+            //copy current char to buffer
+            buf[i] = FONT[character][i];
         }
-        // check if end of screen
-        if (x == 22) {
-            break;
-        } else {
-            x++; // clear one by one
+
+        //print array contents for debug
+        printf("buffer contents\n");
+        for(int i = 0; i < sizeof(buf); i++){
+            printf("0x%x\n",buf[i]);
+        }
+
+        for(int i = 0; i < buf_desc.height; i++){  //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
+        
+        //shift the end bits 4 places to the left, see font.h for reference
+
+            buf[i] <<= 4;
+        }
+
+        //write current buffer/char to display
+        
+        int ret = display_write(dev, x, y, &buf_desc, buf);
+        x+=5;
+        character++;
+        if(ret != 0){
+            break; //just for testing
         }
     }
-
-    
-    memset(buf, 0xff, sizeof(buf));
-
-    y = 0;
-    
-    //1st pos
-    x = 0;
-    ret = display_write(dev, x, y, &buf_desc, buf);
-    //2nd pos
-    x = 5;
-    ret = display_write(dev, x, y, &buf_desc, buf);
-
-    //colon
-    
-    
-    //3rd pos
-    x = 13;
-    ret = display_write(dev, x, y, &buf_desc, buf);
-    //4th pos
-    x = 18;
-    ret = display_write(dev, x, y, &buf_desc, buf);
-
-    printk("finished main\n");
+    printf("finished main.\n");
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //fill buffer with first char in the FONT array
+/*    int charstop = 0;
+    for(int i = 0; i < sizeof(FONT); i++){
+        if(i % 7 == 0){
+            charstop = i;
+            break;
+        }
+        else{
+            
+            buf[i] = FONT[i];
+        }
+    }
+*/
