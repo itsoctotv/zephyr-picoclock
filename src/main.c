@@ -8,11 +8,12 @@
 struct display_capabilities caps;
 
 uint8_t buf[7] = { };
+uint8_t buf_colon[7] = { };
 struct display_buffer_descriptor buf_desc = {
     .buf_size = sizeof(buf),
-    .width = 8,
+    .width =  8,
     .height = 7,
-    .pitch = 8,
+    .pitch =  8,
 };
 
  
@@ -38,37 +39,87 @@ int main() {
         memset(buf,0x00, sizeof(buf));
         display_write(dev, i, y, &buf_desc, buf);
     }
-    int character = 0;
-    while(1){
-        k_msleep(150);
-        for(int i = 0; i < sizeof(FONT[0]); i++){
-                
-            //copy current char to buffer
-            buf[i] = FONT[character][i];
-        }
-
-        //print array contents for debug
-        printf("buffer contents\n");
-        for(int i = 0; i < sizeof(buf); i++){
-            printf("0x%x\n",buf[i]);
-        }
-
-        for(int i = 0; i < buf_desc.height; i++){  //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
+    //int character = 0;
+           
+   
+    /*
+    for(int i = 0; i < sizeof(FONT[0]); i++){
+            
+        //copy current char to buffer
         
+        char res = (FONT[character][i] << 4 ) | FONT[character+1][i];
+        printf("retru nval before: %x\n",res);
+        char mask = 0b11111111;
+        res = res & mask;
+        printf("return val after: %x\n", res);
+        buf[i] = res;
+          
+        }*/
+        //first char
+    for(int i = 0; i < buf_desc.height; i++){ 
+    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
+
         //shift the end bits 4 places to the left, see font.h for reference
-
-            buf[i] <<= 4;
-        }
-
-        //write current buffer/char to display
-        
-        int ret = display_write(dev, x, y, &buf_desc, buf);
-        x += 5;
-        character++;
-        if(ret != 0){
-            break; //just for testing
-        }
+        buf[i] = FONT[1][i] << 4;
+            
+                
     }
+    display_write(dev, x, y, &buf_desc, buf);    
+
+    x += 5;
+    //second char
+    for(int i = 0; i < buf_desc.height; i++){ 
+    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
+
+
+       //shift the end bits 4 places to the left, see font.h for reference
+       buf[i] = FONT[2][i] << 4;
+            
+                
+    }
+    display_write(dev, x, y, &buf_desc, buf);    
+    x += 5; //skip the colon
+
+    //--test--
+    //third char
+    for(int i = 0; i < buf_desc.height; i++){ 
+    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
+
+        //shift the end bits 4 places to the left, see font.h for reference
+        buf[i] = FONT[3][i] << 4;
+            
+                
+    }
+    display_write(dev, x, y, &buf_desc, buf);    
+    x += 5;
+
+    //last char
+    for(int i = 0; i < buf_desc.height; i++){ 
+    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
+
+
+       //shift the end bits 4 places to the left, see font.h for reference
+       buf[i] = FONT[4][i] << 4;
+            
+                
+    }
+    display_write(dev, x, y, &buf_desc, buf);    
+
+
+    while(1){
+        for(int i = 0; i < sizeof(buf_colon); i++){
+            buf_colon[i] = FONT[0][i];
+            buf_colon[i] <<= 4;
+            
+        }
+        display_write(dev, 9, y, &buf_desc, buf_colon);
+        k_msleep(500);
+        memset(buf_colon, 0x00, sizeof(buf_colon));
+        display_write(dev, 9, y, &buf_desc, buf_colon);
+        k_msleep(500);
+
+    }    
+    
     printf("finished main.\n");
     return 0;
 }

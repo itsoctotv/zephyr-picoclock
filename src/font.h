@@ -1,7 +1,18 @@
 #ifndef FONT_H
 #define FONT_H
 
-const unsigned char FONT[6][7] = {
+const unsigned char FONT[7][7] = {
+
+    //:
+    { 0b00000000,
+      0b00000110,
+      0b00000110,
+      0b00000000,
+      0b00000110,
+      0b00000110,
+      0b00000000 },
+
+
     //A  
     { 0x06,       //.....11.
     0x09,         //....1..1
@@ -59,6 +70,14 @@ const unsigned char FONT[6][7] = {
       0x08,     //....1...
       0x08,     //....1...
       0x08 }    //....1...
+
+
+
+
+
+
+
+      
 };
 
 #endif
