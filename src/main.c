@@ -19,7 +19,7 @@ struct display_buffer_descriptor buf_desc = {
  
 int main() {
 
-    const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
     
     display_get_capabilities(dev, &caps);
