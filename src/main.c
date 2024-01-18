@@ -28,7 +28,9 @@ int main() {
     // set buffer and write to display (hopefully)
     int x = 0;
     int y = 0;
-    int charindex = 1; //A
+    int charindex = 3; //start with A 
+
+    
 
     printf("x res: %d\ny res: %d\n",caps.x_resolution, caps.y_resolution);
 
@@ -38,43 +40,48 @@ int main() {
         memset(buf,0x00, sizeof(buf));
         display_write(dev, i, y, &buf_desc, buf);
     }
-    //shift 4bits to the left and use the right 4 bits as the second character
-    //    0000 0110 <- normal values 
-    //    0000 1001 
-    //
-    //    0110 0000 <- shifted 4 bits to the left
-    //    bitwise OR ( | ) with the non shifted next value
-    //    0110 0000
-    //    0000 1001
-    //    ---------
-    //    0110 1001
-    // 1. line|2. line
-    for(int i = 0; i < sizeof(FONT[0]); i+=2){
-        
-        buf[i] = (FONT[charindex][i] << 4) | FONT[charindex][i+1];
-        
-    }
-
-    //rearranges the buffer because there are '0's between each element
-    int i,j = 0;
-    //loops only half of the buffer because it has two 4bit values in one 8bit value
-    //==> 4x 8bit values are enough for the hole character the rest is undefined behaviour 
-    for(i = 0; i < sizeof(buf); i++){
-        if(buf[i] != 0b00000000){
-            buf[j++] = buf[i];
+    //display 4 chars
+    for(int i = 0; i < 4; i++){
+            
+        //shift 4bits to the left and use the right 4 bits as the second character
+        //    0000 0110 <- normal values 
+        //    0000 1001 
+        //
+        //    0110 0000 <- shifted 4 bits to the left
+        //    bitwise OR ( | ) with the non shifted next value
+        //    0110 0000
+        //    0000 1001
+        //    ---------
+        //    0110 1001
+        // 1. line|2. line (it's probably way too complicated than it should be)
+        for(int i = 0; i < sizeof(FONT[0]); i+=2){
+            
+            buf[i] = (FONT[charindex][i] << 4) | FONT[charindex][i+1];
+            
         }
-    }
 
-    display_write(dev, x,y, &buf_desc, buf);
-    display_write(dev, x+5,y, &buf_desc, buf);
-    display_write(dev, x+10,y, &buf_desc, buf);
-    display_write(dev, x+15,y, &buf_desc, buf);
+        //rearranges the buffer because there are '0's between each element from shifting and merging 
+        int i,j = 0;
+        //two 4bit values in one 8bit value
+        //==> 4x 8bit values are enough for the hole character the rest is undefined behaviour 
+        for(i = 0; i < sizeof(buf); i++){
+            if(buf[i] != 0b00000000){
+                buf[j++] = buf[i];
+            }
+        }
+
+        display_write(dev, x,y, &buf_desc, buf);
+
+        charindex++; //goto next char
+        x += 5; //count up position
+
+        //clear the buffer
+        memset(buf,0b00000000, sizeof(buf));
+    
+    }
         
     
-    for(int i = 0; i < sizeof(buf); i++){
-       
-        printf("%x\n",buf[i]);
-    }
+   
     printf("Done.\n");
     return 0;
 }
