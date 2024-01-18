@@ -28,7 +28,7 @@ int main() {
     // set buffer and write to display (hopefully)
     int x = 0;
     int y = 0;
-    int charindex = 3; //start with A 
+    int charindex = 1; //start with A 
 
     
 
@@ -37,7 +37,7 @@ int main() {
     //clear the screen
     for(int i = 0; i < caps.x_resolution; i++){
         
-        memset(buf,0x00, sizeof(buf));
+        memset(buf,0b00000000, sizeof(buf));
         display_write(dev, i, y, &buf_desc, buf);
     }
     //display 4 chars
