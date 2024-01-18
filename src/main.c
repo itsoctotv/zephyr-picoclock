@@ -11,9 +11,9 @@ uint8_t buf[7] = { };
 uint8_t buf_colon[7] = { };
 struct display_buffer_descriptor buf_desc = {
     .buf_size = sizeof(buf),
-    .width =  8,
+    .width =  4,
     .height = 7,
-    .pitch =  8,
+    .pitch =  4,
 };
 
  
@@ -23,13 +23,12 @@ int main() {
 
     
     display_get_capabilities(dev, &caps);
-    
-
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01);
     
     // set buffer and write to display (hopefully)
     int x = 0;
     int y = 0;
+    int charindex = 1; //A
 
     printf("x res: %d\ny res: %d\n",caps.x_resolution, caps.y_resolution);
 
@@ -39,113 +38,43 @@ int main() {
         memset(buf,0x00, sizeof(buf));
         display_write(dev, i, y, &buf_desc, buf);
     }
-    //int character = 0;
-           
-   
-    /*
-    for(int i = 0; i < sizeof(FONT[0]); i++){
-            
-        //copy current char to buffer
+    //shift 4bits to the left and use the right 4 bits as the second character
+    //    0000 0110 <- normal values 
+    //    0000 1001 
+    //
+    //    0110 0000 <- shifted 4 bits to the left
+    //    bitwise OR ( | ) with the non shifted next value
+    //    0110 0000
+    //    0000 1001
+    //    ---------
+    //    0110 1001
+    // 1. line|2. line
+    for(int i = 0; i < sizeof(FONT[0]); i+=2){
         
-        char res = (FONT[character][i] << 4 ) | FONT[character+1][i];
-        printf("retru nval before: %x\n",res);
-        char mask = 0b11111111;
-        res = res & mask;
-        printf("return val after: %x\n", res);
-        buf[i] = res;
-          
-        }*/
-        //first char
-    for(int i = 0; i < buf_desc.height; i++){ 
-    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
-
-        //shift the end bits 4 places to the left, see font.h for reference
-        buf[i] = FONT[1][i] << 4;
-            
-                
+        buf[i] = (FONT[charindex][i] << 4) | FONT[charindex][i+1];
+        
     }
-    display_write(dev, x, y, &buf_desc, buf);    
 
-    x += 5;
-    //second char
-    for(int i = 0; i < buf_desc.height; i++){ 
-    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
-
-
-       //shift the end bits 4 places to the left, see font.h for reference
-       buf[i] = FONT[2][i] << 4;
-            
-                
-    }
-    display_write(dev, x, y, &buf_desc, buf);    
-    x += 5; //skip the colon
-
-    //--test--
-    //third char
-    for(int i = 0; i < buf_desc.height; i++){ 
-    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
-
-        //shift the end bits 4 places to the left, see font.h for reference
-        buf[i] = FONT[3][i] << 4;
-            
-                
-    }
-    display_write(dev, x, y, &buf_desc, buf);    
-    x += 5;
-
-    //last char
-    for(int i = 0; i < buf_desc.height; i++){ 
-    //use buf_desc.height instead of caps.y_res to prevent potential buffer overflow
-
-
-       //shift the end bits 4 places to the left, see font.h for reference
-       buf[i] = FONT[4][i] << 4;
-            
-                
-    }
-    display_write(dev, x, y, &buf_desc, buf);    
-
-
-    while(1){
-        for(int i = 0; i < sizeof(buf_colon); i++){
-            buf_colon[i] = FONT[0][i];
-            buf_colon[i] <<= 4;
-            
+    //rearranges the buffer because there are '0's between each element
+    int i,j = 0;
+    //loops only half of the buffer because it has two 4bit values in one 8bit value
+    //==> 4x 8bit values are enough for the hole character the rest is undefined behaviour 
+    for(i = 0; i < sizeof(buf); i++){
+        if(buf[i] != 0b00000000){
+            buf[j++] = buf[i];
         }
-        display_write(dev, 9, y, &buf_desc, buf_colon);
-        k_msleep(500);
-        memset(buf_colon, 0x00, sizeof(buf_colon));
-        display_write(dev, 9, y, &buf_desc, buf_colon);
-        k_msleep(500);
+    }
 
-    }    
+    display_write(dev, x,y, &buf_desc, buf);
+    display_write(dev, x+5,y, &buf_desc, buf);
+    display_write(dev, x+10,y, &buf_desc, buf);
+    display_write(dev, x+15,y, &buf_desc, buf);
+        
     
-    printf("finished main.\n");
+    for(int i = 0; i < sizeof(buf); i++){
+       
+        printf("%x\n",buf[i]);
+    }
+    printf("Done.\n");
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //fill buffer with first char in the FONT array
-/*    int charstop = 0;
-    for(int i = 0; i < sizeof(FONT); i++){
-        if(i % 7 == 0){
-            charstop = i;
-            break;
-        }
-        else{
-            
-            buf[i] = FONT[i];
-        }
-    }
-*/
