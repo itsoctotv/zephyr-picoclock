@@ -1,14 +1,15 @@
 #ifndef FONT_H
 #define FONT_H
 
-const unsigned char FONT[7][7] = {
+const unsigned char FONT[7][8] = {
     //values in binary because easier to read
     //:
     { 
+
+    ':', //for searching for a char search with index [0] and start displaying/drawing char with index [1]
     0b00000000,         //........
     0b00000110,         //.....11.
     0b00000110,         //.....11.
-    0b00000000,         //........
     0b00000000,         //........
     0b00000110,         //.....11.
     0b00000110,         //.....11.
@@ -18,6 +19,7 @@ const unsigned char FONT[7][7] = {
 
     //A  
     { 
+    'A',
     0b00000110,         //.....11.
     0b00001001,         //....1..1
     0b00001001,         //....1..1
@@ -31,7 +33,7 @@ const unsigned char FONT[7][7] = {
     //B
     
     { 
-
+    'B',
     0b00001110,       //....111.
     0b00001001,       //....1..1
     0b00001001,       //....1..1
@@ -45,6 +47,7 @@ const unsigned char FONT[7][7] = {
 
     //C
     { 
+    'C',
     0b00000110,       //.....11.
     0b00001001,       //....1..1
     0b00001000,       //....1...
@@ -55,7 +58,8 @@ const unsigned char FONT[7][7] = {
     },     
 
     //D
-    { 
+    {
+    'D', 
     0b00001110,     //....111.
     0b00001001,     //....1..1
     0b00001001,     //....1..1
@@ -67,6 +71,7 @@ const unsigned char FONT[7][7] = {
 
     //E
     { 
+    'E',
     0b00001111,     //....1111
     0b00001000,     //....1...
     0b00001000,     //....1...
@@ -78,6 +83,7 @@ const unsigned char FONT[7][7] = {
 
     //F
     { 
+    'F',
     0b00001111,     //....1111
     0b00001000,     //....1...
     0b00001000,     //....1...
