@@ -90,7 +90,8 @@ int displayChar(const struct device *dev, int x, int y, char c){
         printf("%x\n", charbuf[i]);
     }
     printf("here\n");
-    //---skip first value in FONT because its the identifier---
+//TODO fix this
+    
     int i = 1;
     int j = 2;
     int k = 0;
