@@ -17,19 +17,12 @@
 int displayChar(const struct device *dev, int x, int y, char c);
 int readChar(char c);
 int clearChar(const struct device *dev, int index, int y);
+int clearDisplay(const struct device *dev);
 
 
 struct display_capabilities caps;
 
 
-
-uint8_t dispbuf[22] = { };
-struct display_buffer_descriptor disp_buf_desc = {
-    .buf_size = sizeof(dispbuf),
-    .width = 22,
-    .height = 7,
-    .pitch = 22,
-};
 
 
  
@@ -46,9 +39,7 @@ int main() {
     printf("size font: %d   %d   %d\n", sizeof(FONT), sizeof(FONT[0]), (sizeof(FONT) / sizeof(FONT[0])) );
     printf("read font: %d\n", readChar('A'));
 
-    //clear the screen use whole-screen buffer
-    memset(dispbuf, 0b00000000, sizeof(dispbuf));
-    display_write(dev, 0, 0, &disp_buf_desc, dispbuf);
+    clearDisplay(dev);
 
     //writing stuff
     
@@ -64,7 +55,9 @@ int main() {
         k_msleep(500);
         clearChar(dev, POSCOL, POSY);      
         k_msleep(500);
+        
     }    
+    
 
     printf("Done.\n");
     return 0;
@@ -91,6 +84,29 @@ int clearChar(const struct device *dev, int index, int y){
     }
     
 }
+
+int clearDisplay(const struct device *dev){
+    
+    
+    uint8_t dispbuf[22] = { };
+    struct display_buffer_descriptor disp_buf_desc = {
+        .buf_size = sizeof(dispbuf),
+        .width = 22,
+        .height = 7,
+        .pitch = 22,
+    };
+     //clear the screen use whole-screen buffer
+    memset(dispbuf, 0b00000000, sizeof(dispbuf));
+    int ret = display_write(dev, 0, 0, &disp_buf_desc, dispbuf);
+    if(ret != 0){
+        printf("display_write failed\n");
+        return -1;
+    }
+    else{
+        return 0;
+    }
+}
+
 int displayChar(const struct device *dev, int x, int y, char c){
     //read the char from FONT
     int index = readChar(c);
