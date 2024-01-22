@@ -2,6 +2,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/device.h>
+#include <zephyr/drivers/rtc.h>
+
 
 #include "font.h"
 
@@ -11,8 +13,10 @@
 #define POSCOL      9
 #define POS3       13
 #define POS4       18
-
 #define POSY        0
+
+
+
 
 int displayChar(const struct device *dev, int x, int y, char c);
 int readChar(char c);
@@ -25,11 +29,13 @@ struct display_capabilities caps;
 
 
 
- 
 int main() {
 
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
+    const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
+    
+    struct rtc_time time;
     
     display_get_capabilities(dev, &caps);
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01 );
@@ -43,14 +49,84 @@ int main() {
 
     //writing stuff
     
-    displayChar(dev, POS1, POSY,'6');
-    displayChar(dev, POS2, POSY,'7');
+    displayChar(dev, POS1, POSY,'A');
+    displayChar(dev, POS2, POSY,'B');
     displayChar(dev, POSCOL, POSY,':');
-    displayChar(dev, POS3, POSY,'8');
-    displayChar(dev, POS4, POSY,'9');    
+    displayChar(dev, POS3, POSY,1);
+    displayChar(dev, POS4, POSY,2);    
     
-    //blinking colon
+
+
+    int hour,minute,seconds,currentPosSec, currentPosMin = 0;
+    int prevSeconds = 0;
+    clearDisplay(dev);
+
     while(true){
+        //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
+
+       
+        rtc_get_time(rtc, &time);
+                                
+        //hours not implemented yet 
+        hour = time.tm_hour;
+
+        minute = time.tm_min;
+        seconds = time.tm_sec;
+        
+        if(seconds < 10){
+            clearChar(dev,currentPosSec,POSY); //clear previous char
+            displayChar(dev, currentPosSec, POSY, 0); //set it to 0 so it doesnt look empty
+            currentPosSec = POS4; //update location 
+            clearChar(dev,currentPosSec,POSY);
+            displayChar(dev, currentPosSec, POSY, seconds);
+        }
+//seperate 2digit int into 2 seperate ints https://www.log2base2.com/c-examples/loop/split-a-number-into-digits-in-c.html
+        else if(seconds > 9){
+            int num = seconds;
+            int secondDigit, firstDigit = 0;
+            secondDigit = num % 10;
+            firstDigit = num / 10;
+            printf("SECOND %d %d\n", firstDigit, secondDigit);
+
+            currentPosSec = POS3;
+            
+            clearChar(dev,POS3,POSY);
+            displayChar(dev, POS3, POSY, firstDigit);
+            clearChar(dev,POS4, POSY);
+            displayChar(dev, POS4, POSY, secondDigit);
+        }
+
+
+        
+        if(minute < 10){
+            clearChar(dev,currentPosMin,POSY); //clear previous char
+            displayChar(dev, currentPosMin, POSY, 0); //set it to 0 so it doesnt look empty
+
+
+            currentPosMin = POS2; //update location 
+            clearChar(dev,currentPosMin,POSY);
+            displayChar(dev, currentPosMin, POSY, minute);
+        }
+        else if(minute > 9){
+            int num = minute;
+            int secondDigit, firstDigit = 0;
+            secondDigit = num % 10;
+            firstDigit = num / 10;
+            printf("MINUTE%d %d\n", firstDigit, secondDigit);
+
+            currentPosMin = POS1;
+            
+            clearChar(dev,POS1,POSY);
+            displayChar(dev, POS1, POSY, firstDigit);
+            clearChar(dev,POS2, POSY);
+            displayChar(dev, POS2, POSY, secondDigit);            
+        }
+
+        //workaround (fix it)
+        //k_msleep(500);    
+        //fix it with rtc alarm or similar instead of delays
+
+        //blinking colon
         displayChar(dev, POSCOL, POSY, ':');
         k_msleep(500);
         clearChar(dev, POSCOL, POSY);      
