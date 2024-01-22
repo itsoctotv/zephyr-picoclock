@@ -6,6 +6,15 @@
 
 #include "font.h"
 
+//defines for main positions on the led matrix
+#define POS1        0
+#define POS2        5
+#define POSCOL      9
+#define POS3       13
+#define POS4       18
+
+#define POSY        0
+
 int displayChar(const struct device *dev, int x, int y, char c);
 int readChar(char c);
 
@@ -38,13 +47,16 @@ int main() {
     printf("read font: %d\n", readChar('A'));
 
     //clear the screen use whole-screen buffer
-
     memset(dispbuf, 0b00000000, sizeof(dispbuf));
-
     display_write(dev, 0, 0, &disp_buf_desc, dispbuf);
-    displayChar(dev, 0,0,'A');
-    displayChar(dev, 5,0,'B');
+
+    //writing stuff
     
+    displayChar(dev, POS1, POSY,'A');
+    displayChar(dev, POS2, POSY,'B');
+    displayChar(dev, POSCOL, POSY,':');
+    displayChar(dev, POS3, POSY,'C');
+    displayChar(dev, POS4, POSY,'D');    
     
 
     printf("Done.\n");
@@ -82,10 +94,6 @@ int displayChar(const struct device *dev, int x, int y, char c){
     //    ---------
     //    0110 1001
     // 1. line|2. line (it's probably way too complicated than it should be)
-
-    for(int i = 0; i < sizeof(charbuf); i++){
-        printf("%x\n", charbuf[i]);
-    }
 
     int indexFirstLine = 1;
     int indexSecondLine = 2;
