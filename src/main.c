@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/display.h>
@@ -17,6 +16,7 @@
 
 int displayChar(const struct device *dev, int x, int y, char c);
 int readChar(char c);
+int clearChar(const struct device *dev, int index, int y);
 
 
 struct display_capabilities caps;
@@ -52,17 +52,45 @@ int main() {
 
     //writing stuff
     
-    displayChar(dev, POS1, POSY,'A');
-    displayChar(dev, POS2, POSY,'B');
+    displayChar(dev, POS1, POSY,'6');
+    displayChar(dev, POS2, POSY,'7');
     displayChar(dev, POSCOL, POSY,':');
-    displayChar(dev, POS3, POSY,'C');
-    displayChar(dev, POS4, POSY,'D');    
+    displayChar(dev, POS3, POSY,'8');
+    displayChar(dev, POS4, POSY,'9');    
     
+    //blinking colon
+    while(true){
+        displayChar(dev, POSCOL, POSY, ':');
+        k_msleep(500);
+        clearChar(dev, POSCOL, POSY);      
+        k_msleep(500);
+    }    
 
     printf("Done.\n");
     return 0;
 }
 
+
+int clearChar(const struct device *dev, int index, int y){
+    uint8_t charbuf[7] = { };
+    memset(charbuf, 0b00000000, sizeof(charbuf));
+    struct display_buffer_descriptor char_buf_desc = {
+        .buf_size = sizeof(charbuf),
+        .width = 4,
+        .height = 7,
+        .pitch = 4,
+    };
+    int ret = display_write(dev, index, y, &char_buf_desc, charbuf);
+    if(ret != 0){
+        printf("display_write failed\n");
+        
+        return -1;
+    }
+    else{
+        return 0;
+    }
+    
+}
 int displayChar(const struct device *dev, int x, int y, char c){
     //read the char from FONT
     int index = readChar(c);
