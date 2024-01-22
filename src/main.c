@@ -42,11 +42,8 @@ int main() {
     memset(dispbuf, 0b00000000, sizeof(dispbuf));
 
     display_write(dev, 0, 0, &disp_buf_desc, dispbuf);
-
-    int ret = displayChar(dev, 0, 0, 'A');
-    if(ret != 0){
-        printf("displayChar() failed\n");
-    }
+    displayChar(dev, 0,0,'A');
+    displayChar(dev, 5,0,'B');
     
     
 
@@ -89,75 +86,31 @@ int displayChar(const struct device *dev, int x, int y, char c){
     for(int i = 0; i < sizeof(charbuf); i++){
         printf("%x\n", charbuf[i]);
     }
-    printf("here\n");
-//TODO fix this
-    
-    int i = 1;
-    int j = 2;
-    int k = 0;
-    while(true){
-        unsigned char firstLine =  FONT[index][i]; //6
-        unsigned char secondLine = FONT[index][j]; //9
-        
-        unsigned char mergedLine = firstLine<<4 | secondLine;
-        charbuf[k] = mergedLine;
-        i+=2;
-        if(j == 6){
-            j++;
+
+    int indexFirstLine = 1;
+    int indexSecondLine = 2;
+    for(int i = 0; i < sizeof(charbuf); i++){
+        unsigned char firstLine = FONT[index][indexFirstLine];
+        unsigned char secondLine = FONT[index][indexSecondLine];
+        unsigned char mergedLine = firstLine << 4 | secondLine; //shift first 4 places to the left and merge shifted first and non-shifted second
+        charbuf[i] = mergedLine;
+        indexFirstLine += 2; //count to the second next line, skip the next because it was merged from secondLine already 
+        if(indexSecondLine == (sizeof(charbuf) - 1)){
+            indexSecondLine++;  //if at end of array only get next line otherwise ==> array out of bounce 
         }
         else{
-            j+=2;
+            indexSecondLine += 2;
         }
-        
-        k_msleep(800);
-        int ret = display_write(dev, x, y, &char_buf_desc, charbuf);
-        if(ret != 0){
-            break;
-        }
-        k++;    
     }
-   
-    
-    
-    printf("here end\n");
+
+    int ret = display_write(dev, x, y, &char_buf_desc, charbuf); //display buffer
+
+    if(ret != 0){
+        printf("display_write failed\n"); 
+    }
+
     return 0;
 
-/*
-    for(int i = 0; i < sizeof(charbuf); i++){
-        for(int j = 0; j < sizeof(charbuf); j++){
-            if(charbuf[j] == 0b00000000){
-                //swap
-                char temp = charbuf[j];
-                charbuf[j] = charbuf[j+1];
-                charbuf[j+1] = temp;
-                
-            }
-        }
-    }*/
-
-    //rearranges the buffer because there are '0's between each element from shifting and merging 
-    /*int i,j = 0;
-    
-    //two 4bit values in one 8bit value
-    //==> 4x 8bit values are enough for the hole character the rest is undefined behaviour 
-    for(i = 0; i < sizeof(charbuf); i++){
-        if(charbuf[i] != 0b00000000){
-            charbuf[j++] = charbuf[i];
-        }
-    }*/
-
-    
-
-    int ret = display_write(dev, x, y, &char_buf_desc, charbuf);
-    if(ret != 0){
-        printf("Failed display_write\n");
-        return -1; //failed to display
-
-    }
-    else{
-        
-        return 0; //success        
-    }
     
 }
 int readChar(char c){
