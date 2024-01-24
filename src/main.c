@@ -77,6 +77,7 @@ int main() {
             clearChar(dev,currentPosHr,POSY);
             displayChar(dev, currentPosHr, POSY, hour);
             prevHr = hour;
+            currentPosHr = POS1;
 
         }
 //seperate 2digit int into 2 seperate ints https://www.log2base2.com/c-examples/loop/split-a-number-into-digits-in-c.html
@@ -100,7 +101,7 @@ int main() {
 
         
         if(minute < 10 && (minute != prevMin)){
-            clearChar(dev,currentPosMin,POSY); //clear previous char
+            clearChar(dev, currentPosMin,POSY); //clear previous char
             displayChar(dev, currentPosMin, POSY, 0); //set it to 0 so it doesnt look empty
 
 
@@ -108,6 +109,7 @@ int main() {
             clearChar(dev,currentPosMin,POSY);
             displayChar(dev, currentPosMin, POSY, minute);
             prevMin = minute;
+            currentPosMin = POS3;
 
         }
         else if(minute > 9 && (minute != prevMin)){
@@ -140,6 +142,8 @@ int main() {
             rtc_get_time(rtc, &time);
  
         }*/
+
+        //possible fix with rtc alarms 
         
     }    
     
