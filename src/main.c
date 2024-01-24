@@ -4,7 +4,6 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/rtc.h>
 
-
 #include "font.h"
 
 //defines for main positions on the led matrix
@@ -16,8 +15,6 @@
 #define POSY        0
 
 
-
-
 int displayChar(const struct device *dev, int x, int y, char c);
 int readChar(char c);
 int clearChar(const struct device *dev, int index, int y);
@@ -26,8 +23,6 @@ void blinkChar(const struct device *dev, int x, int y, char c);
 
 
 struct display_capabilities caps;
-
-
 
 
 int main() {
@@ -60,29 +55,32 @@ int main() {
     
     clearDisplay(dev);
     
-
+    int prevHr,prevMin = -1;
 
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
-
-       
-        rtc_get_time(rtc, &time);
-                                
-        //hours not implemented yet 
-        hour = time.tm_hour;
-
-        minute = time.tm_min;
-        //seconds = time.tm_sec;
         
-        if(hour < 10){
+        //seconds = time.tm_sec;
+            
+        rtc_get_time(rtc, &time);
+        
+
+        hour = time.tm_hour;       
+        minute = time.tm_min; 
+
+        
+        
+        if(hour < 10 && (hour != prevHr)){
             clearChar(dev,currentPosHr,POSY); //clear previous char
             displayChar(dev, currentPosHr, POSY, 0); //set it to 0 so it doesnt look empty
             currentPosHr = POS2; //update location 
             clearChar(dev,currentPosHr,POSY);
             displayChar(dev, currentPosHr, POSY, hour);
+            prevHr = hour;
+
         }
 //seperate 2digit int into 2 seperate ints https://www.log2base2.com/c-examples/loop/split-a-number-into-digits-in-c.html
-        else if(hour > 9){
+        else if(hour > 9 && (hour != prevHr)){
             int num = hour;
             int secondDigit, firstDigit = 0;
             secondDigit = num % 10;
@@ -95,11 +93,13 @@ int main() {
             displayChar(dev, POS1, POSY, firstDigit);
             clearChar(dev,POS2, POSY);
             displayChar(dev, POS2, POSY, secondDigit);
+            prevHr = hour;
+
         }
 
 
         
-        if(minute < 10){
+        if(minute < 10 && (minute != prevMin)){
             clearChar(dev,currentPosMin,POSY); //clear previous char
             displayChar(dev, currentPosMin, POSY, 0); //set it to 0 so it doesnt look empty
 
@@ -107,8 +107,10 @@ int main() {
             currentPosMin = POS4; //update location 
             clearChar(dev,currentPosMin,POSY);
             displayChar(dev, currentPosMin, POSY, minute);
+            prevMin = minute;
+
         }
-        else if(minute > 9){
+        else if(minute > 9 && (minute != prevMin)){
             int num = minute;
             int secondDigit, firstDigit = 0;
             secondDigit = num % 10;
@@ -120,14 +122,24 @@ int main() {
             clearChar(dev,POS3,POSY);
             displayChar(dev, POS3, POSY, firstDigit);
             clearChar(dev,POS4, POSY);
-            displayChar(dev, POS4, POSY, secondDigit);            
+            displayChar(dev, POS4, POSY, secondDigit);    
+            prevMin = minute;
+        
         }
 
         //workaround (fix it)
         //k_msleep(500);    
         //fix it with rtc alarm or similar instead of delays
 
+        
+
         blinkChar(dev, POSCOL, POSY, ':');
+        /* TEST FOR FLICKERING 
+        //flickers everytime on rtc_get_time call
+        while(true){
+            rtc_get_time(rtc, &time);
+ 
+        }*/
         
     }    
     
