@@ -22,6 +22,7 @@ int displayChar(const struct device *dev, int x, int y, char c);
 int readChar(char c);
 int clearChar(const struct device *dev, int index, int y);
 int clearDisplay(const struct device *dev);
+void blinkChar(const struct device *dev, int x, int y, char c);
 
 
 struct display_capabilities caps;
@@ -54,12 +55,12 @@ int main() {
     displayChar(dev, POSCOL, POSY,':');
     displayChar(dev, POS3, POSY,1);
     displayChar(dev, POS4, POSY,2);    
+
+    int hour,minute,seconds,currentPosHr, currentPosMin = 0;
+    
+    clearDisplay(dev);
     
 
-
-    int hour,minute,seconds,currentPosSec, currentPosMin = 0;
-    int prevSeconds = 0;
-    clearDisplay(dev);
 
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -71,29 +72,29 @@ int main() {
         hour = time.tm_hour;
 
         minute = time.tm_min;
-        seconds = time.tm_sec;
+        //seconds = time.tm_sec;
         
-        if(seconds < 10){
-            clearChar(dev,currentPosSec,POSY); //clear previous char
-            displayChar(dev, currentPosSec, POSY, 0); //set it to 0 so it doesnt look empty
-            currentPosSec = POS4; //update location 
-            clearChar(dev,currentPosSec,POSY);
-            displayChar(dev, currentPosSec, POSY, seconds);
+        if(hour < 10){
+            clearChar(dev,currentPosHr,POSY); //clear previous char
+            displayChar(dev, currentPosHr, POSY, 0); //set it to 0 so it doesnt look empty
+            currentPosHr = POS2; //update location 
+            clearChar(dev,currentPosHr,POSY);
+            displayChar(dev, currentPosHr, POSY, hour);
         }
 //seperate 2digit int into 2 seperate ints https://www.log2base2.com/c-examples/loop/split-a-number-into-digits-in-c.html
-        else if(seconds > 9){
-            int num = seconds;
+        else if(hour > 9){
+            int num = hour;
             int secondDigit, firstDigit = 0;
             secondDigit = num % 10;
             firstDigit = num / 10;
-            printf("SECOND %d %d\n", firstDigit, secondDigit);
+            printf("HOUR %d %d\n", firstDigit, secondDigit);
 
-            currentPosSec = POS3;
+            currentPosHr = POS1;
             
-            clearChar(dev,POS3,POSY);
-            displayChar(dev, POS3, POSY, firstDigit);
-            clearChar(dev,POS4, POSY);
-            displayChar(dev, POS4, POSY, secondDigit);
+            clearChar(dev,POS1,POSY);
+            displayChar(dev, POS1, POSY, firstDigit);
+            clearChar(dev,POS2, POSY);
+            displayChar(dev, POS2, POSY, secondDigit);
         }
 
 
@@ -103,7 +104,7 @@ int main() {
             displayChar(dev, currentPosMin, POSY, 0); //set it to 0 so it doesnt look empty
 
 
-            currentPosMin = POS2; //update location 
+            currentPosMin = POS4; //update location 
             clearChar(dev,currentPosMin,POSY);
             displayChar(dev, currentPosMin, POSY, minute);
         }
@@ -112,25 +113,21 @@ int main() {
             int secondDigit, firstDigit = 0;
             secondDigit = num % 10;
             firstDigit = num / 10;
-            printf("MINUTE%d %d\n", firstDigit, secondDigit);
+            printf("MINUTE %d %d\n", firstDigit, secondDigit);
 
-            currentPosMin = POS1;
+            currentPosMin = POS3;
             
-            clearChar(dev,POS1,POSY);
-            displayChar(dev, POS1, POSY, firstDigit);
-            clearChar(dev,POS2, POSY);
-            displayChar(dev, POS2, POSY, secondDigit);            
+            clearChar(dev,POS3,POSY);
+            displayChar(dev, POS3, POSY, firstDigit);
+            clearChar(dev,POS4, POSY);
+            displayChar(dev, POS4, POSY, secondDigit);            
         }
 
         //workaround (fix it)
         //k_msleep(500);    
         //fix it with rtc alarm or similar instead of delays
 
-        //blinking colon
-        displayChar(dev, POSCOL, POSY, ':');
-        k_msleep(500);
-        clearChar(dev, POSCOL, POSY);      
-        k_msleep(500);
+        blinkChar(dev, POSCOL, POSY, ':');
         
     }    
     
@@ -251,4 +248,12 @@ int readChar(char c){
     }
     return -1; //nothing found
     
+}
+void blinkChar(const struct device *dev, int x, int y, char c){
+        //blinking colon
+        displayChar(dev, x, y, c);
+        k_msleep(500);
+        clearChar(dev, x, y);      
+        k_msleep(500);
+
 }
