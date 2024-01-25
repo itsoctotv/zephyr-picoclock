@@ -30,8 +30,25 @@ int main() {
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
     const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
+
+    struct rtc_time time = {
+        .tm_sec = 0,
+        .tm_min = 20,
+        .tm_hour = 8,
+        .tm_mday = 1,
+        .tm_mon = 1,
+        .tm_year = 2024,
+        .tm_wday = 1,
+        .tm_yday = 1,
+        .tm_isdst = -1,
+        .tm_nsec = 1
+    };
+
     
-    struct rtc_time time;
+    
+    rtc_set_time(rtc,&time);
+
+    
     
     display_get_capabilities(dev, &caps);
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01 );
