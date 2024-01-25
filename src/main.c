@@ -3,6 +3,8 @@
 #include <zephyr/drivers/display.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/rtc.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/gpio.h>
 
 #include "font.h"
 
@@ -20,9 +22,12 @@ int readChar(char c);
 int clearChar(const struct device *dev, int index, int y);
 int clearDisplay(const struct device *dev);
 void blinkChar(const struct device *dev, int x, int y, char c);
-
+void updateTemp(const struct device *dev);
+int switchToTemp(const struct device *display_device,const struct device *temp_device);
 
 struct display_capabilities caps;
+
+const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 
 
 int main() {
@@ -31,10 +36,17 @@ int main() {
 
     const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
 
+    const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
+    
+
+    gpio_pin_configure_dt(&button, GPIO_INPUT);
+    
+    
+
     struct rtc_time time = {
         .tm_sec = 0,
-        .tm_min = 20,
-        .tm_hour = 8,
+        .tm_min = 39,
+        .tm_hour = 12,
         .tm_mday = 1,
         .tm_mon = 1,
         .tm_year = 2024,
@@ -73,11 +85,38 @@ int main() {
     clearDisplay(dev);
     
     int prevHr,prevMin = -1;
+    int returnSwitchTemp = -1;
 
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
         
         //seconds = time.tm_sec;
+
+        //button test
+
+        //because of blinkChar() you'll have to wait until this if condition is checked in the while loop
+        //just a simple example/test for the button; possible fix with "async interrupt handlers (?)"
+        //https://docs.zephyrproject.org/latest/kernel/services/interrupts.html
+        //for now press the button longer a bit to trigger the if statements in main() and switchToTemp() 
+
+        
+        int val = gpio_pin_get_dt(&button);
+        //printf("buttonval: %d\n", val);
+        if(val != 0){
+           
+            returnSwitchTemp = switchToTemp(dev,devtemp); //switch to the temperature view and stay there until button is pressed again
+            
+        }
+
+        if(returnSwitchTemp == 0){
+            //if returned from switchToTemp() update/set hours and minutes
+            prevHr = -1;
+            prevMin = -1; //set to default to simulate "restart"
+            returnSwitchTemp = -1; //set it to -1 or any value to not trigger this statement again
+        }
+
+
+        
             
         rtc_get_time(rtc, &time);
         
@@ -161,13 +200,17 @@ int main() {
         }*/
 
         //possible fix with rtc alarms 
+
         
+        
+
     }    
     
 
     printf("Done.\n");
     return 0;
 }
+
 
 
 int clearChar(const struct device *dev, int index, int y){
@@ -290,3 +333,98 @@ void blinkChar(const struct device *dev, int x, int y, char c){
         k_msleep(500);
 
 }
+
+void updateTemp(const struct device *dev){
+
+    struct sensor_value temp;
+    sensor_sample_fetch(dev);
+    sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+    printf("%d.%d\n",temp.val1,temp.val2);
+}
+
+int switchToTemp(const struct device *display_device, const struct device *temp_device){
+
+    clearDisplay(display_device);
+
+    int currentPosVal1 = POS1;
+    int currentPosVal2 = POS3;
+
+    while(true){
+        struct sensor_value temp;
+        sensor_sample_fetch(temp_device);
+        sensor_channel_get(temp_device, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+
+        printf("%d.%d°C\n",temp.val1,temp.val2);
+        
+
+
+        //first value of temp
+        if(temp.val1 < 10){
+            clearChar(display_device,currentPosVal1,POSY); //clear previous char
+           
+            currentPosVal1 = POS2; //update location 
+            clearChar(display_device,currentPosVal1,POSY);
+            displayChar(display_device, currentPosVal1, POSY, temp.val1);
+           
+            currentPosVal1 = POS1;
+        
+        }
+        
+        else if(temp.val1 > 9){
+        //if temp.val1 is double digit
+            
+            int num1 = temp.val1;
+                        
+            int secondDigit, firstDigit = 0;
+            secondDigit = num1 % 10;
+            firstDigit = num1 / 10;
+            printf("TEMPVAL1 %d %d\n", firstDigit, secondDigit);
+            currentPosVal1 = POS1;
+            
+            clearChar(display_device,POS1,POSY);
+            displayChar(display_device, POS1, POSY, firstDigit);
+            clearChar(display_device,POS2, POSY);
+            displayChar(display_device, POS2, POSY, secondDigit);    
+        }
+
+        
+        //second value of temp only 
+        if(temp.val2 > 0){ // only single digit
+
+            currentPosVal2 = POS3;
+            int val = temp.val2; 
+            printf("val: %d\n");
+            while(val >= 10){
+                
+                val = val / 10; //only get the first digit
+            }
+            printf("val2: %d\n",val);
+            clearChar(display_device,currentPosVal2,POSY);
+            displayChar(display_device, currentPosVal2, POSY, val);
+                   
+        }
+        //draw the dot in the middle and the 'C'
+
+        //draw dot
+        clearChar(display_device, POSCOL, POSY);
+        displayChar(display_device, POSCOL, POSY, '.');
+
+        //draw C
+        clearChar(display_device, POS4, POSY);
+        displayChar(display_device, POS4, POSY, 'C'); 
+
+        k_msleep(500);//wait a bit 
+        
+        int val = gpio_pin_get_dt(&button);
+        if(val != 0){
+            printf("exit\n");
+            break;
+        }
+        
+    }
+    clearDisplay(display_device);
+    return 0;
+    
+    
+}
+

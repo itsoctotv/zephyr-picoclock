@@ -4,7 +4,7 @@
 //FONT[1][2]: 
 //      1 = total elements
 //      2 = lines inside elements
-const unsigned char FONT[17][8] = {
+const unsigned char FONT[18][8] = {
     //values in binary because easier to read
     //:
     { 
@@ -17,6 +17,16 @@ const unsigned char FONT[17][8] = {
         0b00000110,         //.....11.
         0b00000110,         //.....11.
         0b00000000          //........
+    },
+    {
+        '.',
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000110,
+        0b00000110
     },
 
 
