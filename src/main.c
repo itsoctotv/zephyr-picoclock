@@ -24,10 +24,12 @@ int clearDisplay(const struct device *dev);
 void blinkChar(const struct device *dev, int x, int y, char c);
 void updateTemp(const struct device *dev);
 int switchToTemp(const struct device *display_device,const struct device *temp_device);
+void scrollText(const struct device *dev, char c);
 
 struct display_capabilities caps;
 
 const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 
 
 int main() {
@@ -37,16 +39,14 @@ int main() {
     const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
 
     const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
-    
 
     gpio_pin_configure_dt(&button, GPIO_INPUT);
-    
-    
-
+    gpio_pin_configure_dt(&button2, GPIO_INPUT);
+   
     struct rtc_time time = {
         .tm_sec = 0,
-        .tm_min = 21,
-        .tm_hour = 8,
+        .tm_min = 5,
+        .tm_hour = 12,
         .tm_mday = 1,
         .tm_mon = 1,
         .tm_year = 2024,
@@ -55,12 +55,10 @@ int main() {
         .tm_isdst = -1,
         .tm_nsec = 1
     };
-
-    
+  
     
     rtc_set_time(rtc,&time);
-
-    
+   
     
     display_get_capabilities(dev, &caps);
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01 );
@@ -86,6 +84,7 @@ int main() {
     
     int prevHr,prevMin = -1;
     int returnSwitchTemp = -1;
+    
 
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -101,11 +100,15 @@ int main() {
 
         
         int val = gpio_pin_get_dt(&button);
+        int val2 = gpio_pin_get_dt(&button2);
         //printf("buttonval: %d\n", val);
         if(val != 0){
            
             returnSwitchTemp = switchToTemp(dev,devtemp); //switch to the temperature view and stay there until button is pressed again
             
+        }
+        if(val2 != 0){
+            scrollText(dev,'A');
         }
 
         if(returnSwitchTemp == 0){
@@ -199,10 +202,8 @@ int main() {
  
         }*/
 
-        //possible fix with rtc alarms 
-
-        
-        
+    
+       
 
     }    
     
@@ -393,7 +394,7 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
 
             currentPosVal2 = POS3;
             int val = temp.val2; 
-            printf("val: %d\n");
+            printf("val: %d\n", val);
             while(val >= 10){
                 
                 val = val / 10; //only get the first digit
@@ -428,3 +429,39 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
     
 }
 
+void scrollText(const struct device *dev, char c){
+    clearDisplay(dev);
+
+    char singleLineBuff[1] = { };
+    memset(singleLineBuff, 0x00, sizeof(singleLineBuff));
+    struct display_buffer_descriptor char_buf_desc = {
+            .buf_size = sizeof(singleLineBuff),
+            .width =  1,
+            .height = 7,
+            .pitch =  1,
+        };
+    while(true){
+        for(int i = 0; i < 18; i++){
+            displayChar(dev, i+1, POSY, c);
+            display_write(dev, i, POSY, &char_buf_desc, singleLineBuff);
+            k_msleep(100);
+
+            
+            
+        }
+        for(int i = 19; i > 0; i--){
+            displayChar(dev, i-1, POSY, c);
+            display_write(dev, i+3, POSY, &char_buf_desc, singleLineBuff);
+            k_msleep(100);
+            
+        }
+
+        int val = gpio_pin_get_dt(&button2);
+        if(val != 0){
+            printf("exit\n");
+            break;
+        }
+    
+    }
+    
+}
