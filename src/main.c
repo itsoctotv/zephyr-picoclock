@@ -25,11 +25,13 @@ void blinkChar(const struct device *dev, int x, int y, char c);
 void updateTemp(const struct device *dev);
 int switchToTemp(const struct device *display_device,const struct device *temp_device);
 void scrollText(const struct device *dev, char c);
+void displayString(const struct device *dev, int x, int y, char* s);
 
 struct display_capabilities caps;
 
 const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
+const struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
 
 
 int main() {
@@ -42,11 +44,12 @@ int main() {
 
     gpio_pin_configure_dt(&button, GPIO_INPUT);
     gpio_pin_configure_dt(&button2, GPIO_INPUT);
+    gpio_pin_configure_dt(&button3, GPIO_INPUT);
    
     struct rtc_time time = {
         .tm_sec = 0,
-        .tm_min = 5,
-        .tm_hour = 12,
+        .tm_min = 6,
+        .tm_hour = 13,
         .tm_mday = 1,
         .tm_mon = 1,
         .tm_year = 2024,
@@ -101,6 +104,7 @@ int main() {
         
         int val = gpio_pin_get_dt(&button);
         int val2 = gpio_pin_get_dt(&button2);
+        int val3 = gpio_pin_get_dt(&button3);
         //printf("buttonval: %d\n", val);
         if(val != 0){
            
@@ -110,6 +114,12 @@ int main() {
         if(val2 != 0){
             scrollText(dev,'A');
         }
+
+        if(val3 != 0){
+            //displayString(dev, POS1, POSY, "ABC");
+            printf("still not finished\n");
+        }
+        
 
         if(returnSwitchTemp == 0){
             //if returned from switchToTemp() update/set hours and minutes
@@ -429,6 +439,40 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
     
 }
 
+
+
+
+
+
+
+
+
+
+
+
+//[WIP]
+void displayString(const struct device *dev, int x, int y, char* s){
+    printf("inside displaystring thing\n");
+    k_msleep(500);
+    int pos = x;
+    clearDisplay(dev);
+    for(int i = 0; i < sizeof(s); i++){
+        displayChar(dev, pos+5, y, s[i]); //goto next position for next char
+        
+    }
+    while(true){
+        
+        int val = gpio_pin_get_dt(&button3);
+        if(val != 0){
+            printf("exit\n");
+            clearDisplay(dev);
+            return;
+        }
+        printf("waiting for input\n");
+        k_msleep(500);
+    }
+}
+
 void scrollText(const struct device *dev, char c){
     clearDisplay(dev);
 
@@ -443,7 +487,7 @@ void scrollText(const struct device *dev, char c){
     while(true){
         for(int i = 0; i < 18; i++){
             displayChar(dev, i+1, POSY, c);
-            display_write(dev, i, POSY, &char_buf_desc, singleLineBuff);
+            display_write(dev, i, POSY, &char_buf_desc, singleLineBuff); //delete a single line
             k_msleep(100);
 
             
@@ -463,5 +507,6 @@ void scrollText(const struct device *dev, char c){
         }
     
     }
+    clearDisplay(dev);
     
 }
