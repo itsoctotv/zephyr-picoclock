@@ -45,8 +45,8 @@ int main() {
 
     struct rtc_time time = {
         .tm_sec = 0,
-        .tm_min = 39,
-        .tm_hour = 12,
+        .tm_min = 21,
+        .tm_hour = 8,
         .tm_mday = 1,
         .tm_mon = 1,
         .tm_year = 2024,
@@ -389,7 +389,7 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
 
         
         //second value of temp only 
-        if(temp.val2 > 0){ // only single digit
+        if(temp.val2 > -1){ // only single digit; if statement is basically useless
 
             currentPosVal2 = POS3;
             int val = temp.val2; 
