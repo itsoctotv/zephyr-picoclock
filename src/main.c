@@ -5,6 +5,8 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/led.h>
+
 
 #include "font.h"
 
@@ -24,8 +26,13 @@ int clearDisplay(const struct device *dev);
 void blinkChar(const struct device *dev, int x, int y, char c);
 void updateTemp(const struct device *dev);
 int switchToTemp(const struct device *display_device,const struct device *temp_device);
+
+
 void scrollText(const struct device *dev, char c);
 void displayString(const struct device *dev, int x, int y, char* s);
+
+void updateDay(const struct device *rtc);
+
 
 struct display_capabilities caps;
 
@@ -42,26 +49,27 @@ int main() {
 
     const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
 
+
     gpio_pin_configure_dt(&button, GPIO_INPUT);
     gpio_pin_configure_dt(&button2, GPIO_INPUT);
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
-   
-    struct rtc_time time = {
+    
+     struct rtc_time time;/* = {
         .tm_sec = 0,
-        .tm_min = 6,
-        .tm_hour = 13,
-        .tm_mday = 1,
-        .tm_mon = 1,
+        .tm_min = 50,
+        .tm_hour = 14,
+        .tm_mday = 29,
+        .tm_mon = 0,
         .tm_year = 2024,
         .tm_wday = 1,
-        .tm_yday = 1,
+        .tm_yday = 29,
         .tm_isdst = -1,
         .tm_nsec = 1
     };
   
     
     rtc_set_time(rtc,&time);
-   
+   */
     
     display_get_capabilities(dev, &caps);
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01 );
@@ -112,12 +120,13 @@ int main() {
             
         }
         if(val2 != 0){
-            scrollText(dev,'A');
+            scrollText(dev,':');
         }
 
         if(val3 != 0){
             //displayString(dev, POS1, POSY, "ABC");
-            printf("still not finished\n");
+            updateDay(rtc);
+           
         }
         
 
@@ -223,7 +232,6 @@ int main() {
 }
 
 
-
 int clearChar(const struct device *dev, int index, int y){
     uint8_t charbuf[7] = { };
     memset(charbuf, 0b00000000, sizeof(charbuf));
@@ -246,10 +254,10 @@ int clearChar(const struct device *dev, int index, int y){
 }
 
 int clearDisplay(const struct device *dev){
-    
-    
+        
     uint8_t dispbuf[22] = { };
     struct display_buffer_descriptor disp_buf_desc = {
+
         .buf_size = sizeof(dispbuf),
         .width = 22,
         .height = 7,
@@ -509,4 +517,38 @@ void scrollText(const struct device *dev, char c){
     }
     clearDisplay(dev);
     
+}
+void updateDay(const struct device *rtc){
+    struct rtc_time currTime;
+    //const struct device *monday0 = DEVICE_DT_GET(DT_ALIAS(led2));
+    
+    rtc_get_time(rtc, &currTime);
+    printf("currTime: %d\n",currTime.tm_wday);
+    switch(currTime.tm_wday){
+        case 0:
+            printf("Sunday\n");
+            break;
+        case 1:
+            printf("Monday\n");
+            //led_on(monday0, 1);
+            break;
+        case 2:
+            printf("Tuesday\n");
+            break;
+        case 3:
+            printf("Wednesday\n");
+            break;
+        case 4:
+            printf("Thursday\n");
+            break;
+        case 5:
+            printf("Friday\n");
+            break;
+        case 6:
+            printf("Saturday\n");
+            break;
+        default:
+            printf("Failed to read Weekdays!\n");
+            
+    }
 }
