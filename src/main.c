@@ -5,7 +5,7 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/led.h>
+//#include <zephyr/drivers/led.h>
 
 
 #include "font.h"
@@ -56,13 +56,13 @@ int main() {
     
      struct rtc_time time;/* = {
         .tm_sec = 0,
-        .tm_min = 50,
-        .tm_hour = 14,
-        .tm_mday = 29,
+        .tm_min = 41,
+        .tm_hour = 8,
+        .tm_mday = 30,
         .tm_mon = 0,
         .tm_year = 2024,
-        .tm_wday = 1,
-        .tm_yday = 29,
+        .tm_wday = 2,
+        .tm_yday = 30,
         .tm_isdst = -1,
         .tm_nsec = 1
     };
@@ -89,11 +89,11 @@ int main() {
     displayChar(dev, POS3, POSY,1);
     displayChar(dev, POS4, POSY,2);    
 
-    int hour,minute,seconds,currentPosHr, currentPosMin = 0;
+    int hour,minute,seconds,day,currentPosHr, currentPosMin = 0;
     
     clearDisplay(dev);
     
-    int prevHr,prevMin = -1;
+    int prevHr,prevMin,prevDay = -1;
     int returnSwitchTemp = -1;
     
 
@@ -125,6 +125,7 @@ int main() {
 
         if(val3 != 0){
             //displayString(dev, POS1, POSY, "ABC");
+            //quick update day when pressing btn3
             updateDay(rtc);
            
         }
@@ -145,6 +146,7 @@ int main() {
 
         hour = time.tm_hour;       
         minute = time.tm_min; 
+        day = time.tm_wday;
 
         
         
@@ -206,6 +208,14 @@ int main() {
             prevMin = minute;
         
         }
+
+        if(day != prevDay){
+            updateDay(rtc);
+            printf("updating (prev) day   %d %d\n",day, prevDay);
+            prevDay = day;
+            printf("updating day   %d %d\n",day, prevDay);
+        }
+        
 
         //workaround (fix it)
         //k_msleep(500);    
@@ -520,32 +530,119 @@ void scrollText(const struct device *dev, char c){
 }
 void updateDay(const struct device *rtc){
     struct rtc_time currTime;
-    //const struct device *monday0 = DEVICE_DT_GET(DT_ALIAS(led2));
+
+    //maybe there is a better way?
+    //monday leds
+    const struct gpio_dt_spec monday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led2),gpios);
+    const struct gpio_dt_spec monday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led3),gpios);
+
+    gpio_pin_configure_dt(&monday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&monday1, GPIO_OUTPUT);
+
+    //tuesday leds
+    const struct gpio_dt_spec tuesday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led4),gpios);
+    const struct gpio_dt_spec tuesday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led5),gpios);
+    
+    gpio_pin_configure_dt(&tuesday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&tuesday1, GPIO_OUTPUT);
+
+    //wednesday leds
+    const struct gpio_dt_spec wednesday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led6),gpios);
+    const struct gpio_dt_spec wednesday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led7),gpios);
+
+    gpio_pin_configure_dt(&wednesday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&wednesday1, GPIO_OUTPUT);
+
+    //thursday leds
+    const struct gpio_dt_spec thursday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led8),gpios);
+    const struct gpio_dt_spec thursday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led9),gpios);
+    
+    gpio_pin_configure_dt(&thursday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&thursday1, GPIO_OUTPUT);
+
+    //friday leds
+    const struct gpio_dt_spec friday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led10),gpios);
+    const struct gpio_dt_spec friday1  = GPIO_DT_SPEC_GET(DT_ALIAS(led11),gpios);
+
+    gpio_pin_configure_dt(&friday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&friday1, GPIO_OUTPUT);
+
+    //saturday leds
+    const struct gpio_dt_spec saturday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led12),gpios);
+    const struct gpio_dt_spec saturday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led13),gpios);
+    
+    gpio_pin_configure_dt(&saturday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&saturday1, GPIO_OUTPUT);
+
+    //sunday leds
+    const struct gpio_dt_spec sunday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led14),gpios);
+    const struct gpio_dt_spec sunday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led16),gpios);
+    
+    gpio_pin_configure_dt(&sunday0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&sunday1, GPIO_OUTPUT);
+
+
+    //turn off all first (clears the previous day)
+
+
+    gpio_pin_set_dt(&sunday0, 0);
+    gpio_pin_set_dt(&sunday1, 0);
+    gpio_pin_set_dt(&monday0, 0);
+    gpio_pin_set_dt(&monday1, 0);
+    gpio_pin_set_dt(&tuesday0, 0);
+    gpio_pin_set_dt(&tuesday1, 0);
+    gpio_pin_set_dt(&wednesday0, 0);
+    gpio_pin_set_dt(&wednesday1, 0);
+    gpio_pin_set_dt(&thursday0, 0);
+    gpio_pin_set_dt(&thursday1, 0);
+    gpio_pin_set_dt(&friday0, 0);
+    gpio_pin_set_dt(&friday1, 0);
+    gpio_pin_set_dt(&saturday0, 0);
+    gpio_pin_set_dt(&saturday1, 0);
+
+
+
+
+     
     
     rtc_get_time(rtc, &currTime);
     printf("currTime: %d\n",currTime.tm_wday);
     switch(currTime.tm_wday){
         case 0:
             printf("Sunday\n");
+            gpio_pin_set_dt(&sunday0, 1);
+            gpio_pin_set_dt(&sunday1, 1);
             break;
         case 1:
             printf("Monday\n");
             //led_on(monday0, 1);
+            gpio_pin_set_dt(&monday0, 1);
+            gpio_pin_set_dt(&monday1, 1);
             break;
         case 2:
             printf("Tuesday\n");
+            gpio_pin_set_dt(&tuesday0, 1);
+            gpio_pin_set_dt(&tuesday1, 1);
             break;
         case 3:
             printf("Wednesday\n");
+            gpio_pin_set_dt(&wednesday0, 1);
+            gpio_pin_set_dt(&wednesday1, 1);
             break;
         case 4:
             printf("Thursday\n");
+            gpio_pin_set_dt(&thursday0, 1);
+            gpio_pin_set_dt(&thursday1, 1);
             break;
         case 5:
             printf("Friday\n");
+            gpio_pin_set_dt(&friday0, 1);
+            gpio_pin_set_dt(&friday1, 1);
             break;
         case 6:
             printf("Saturday\n");
+            gpio_pin_set_dt(&saturday0, 1);
+            gpio_pin_set_dt(&saturday1, 1);
             break;
         default:
             printf("Failed to read Weekdays!\n");
