@@ -7,6 +7,8 @@
 #include <zephyr/drivers/gpio.h>
 //#include <zephyr/drivers/led.h>
 
+//TODO: font.h --> acsii table 
+
 
 #include "font.h"
 
@@ -26,6 +28,7 @@ int clearDisplay(const struct device *dev);
 void blinkChar(const struct device *dev, int x, int y, char c);
 void updateTemp(const struct device *dev);
 int switchToTemp(const struct device *display_device,const struct device *temp_device);
+void clearLEDs(const struct device *dev, int state);
 
 
 void scrollText(const struct device *dev, char c);
@@ -33,13 +36,11 @@ void displayString(const struct device *dev, int x, int y, char* s);
 
 void updateDay(const struct device *rtc);
 
-
 struct display_capabilities caps;
 
 const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 const struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
-
 
 int main() {
 
@@ -55,16 +56,16 @@ int main() {
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
     
      struct rtc_time time;/* = {
-        .tm_sec = 0,
-        .tm_min = 41,
-        .tm_hour = 8,
-        .tm_mday = 30,
-        .tm_mon = 0,
-        .tm_year = 2024,
-        .tm_wday = 2,
-        .tm_yday = 30,
-        .tm_isdst = -1,
-        .tm_nsec = 1
+        .tm_sec = 0,            //sec
+        .tm_min = 54,           //minute
+        .tm_hour = 10,          //hour
+        .tm_mday = 31,          //day of month
+        .tm_mon = 0,            //month
+        .tm_year = 2024,        //year
+        .tm_wday = 3,           //weekday
+        .tm_yday = 31,          //yearday
+        .tm_isdst = -1,         //daylight saving flag
+        .tm_nsec = 1            //nanosec
     };
   
     
@@ -115,7 +116,7 @@ int main() {
         int val3 = gpio_pin_get_dt(&button3);
         //printf("buttonval: %d\n", val);
         if(val != 0){
-           
+            
             returnSwitchTemp = switchToTemp(dev,devtemp); //switch to the temperature view and stay there until button is pressed again
             
         }
@@ -127,14 +128,17 @@ int main() {
             //displayString(dev, POS1, POSY, "ABC");
             //quick update day when pressing btn3
             updateDay(rtc);
-           
+            clearLEDs(dev, 1);
+            k_msleep(1000);
+            clearLEDs(dev, 0);
+                       
         }
         
-
         if(returnSwitchTemp == 0){
             //if returned from switchToTemp() update/set hours and minutes
             prevHr = -1;
             prevMin = -1; //set to default to simulate "restart"
+            prevDay = -1;
             returnSwitchTemp = -1; //set it to -1 or any value to not trigger this statement again
         }
 
@@ -378,6 +382,11 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
     int currentPosVal1 = POS1;
     int currentPosVal2 = POS3;
 
+    const struct gpio_dt_spec celsius = GPIO_DT_SPEC_GET(DT_ALIAS(led23),gpios);
+
+    gpio_pin_configure_dt(&celsius, GPIO_OUTPUT);
+    gpio_pin_set_dt(&celsius, 1); //turn on °C LED
+    
     while(true){
         struct sensor_value temp;
         sensor_sample_fetch(temp_device);
@@ -417,20 +426,32 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         }
 
         
-        //second value of temp only 
-        if(temp.val2 > -1){ // only single digit; if statement is basically useless
-
-            currentPosVal2 = POS3;
-            int val = temp.val2; 
-            printf("val: %d\n", val);
-            while(val >= 10){
-                
-                val = val / 10; //only get the first digit
-            }
-            printf("val2: %d\n",val);
-            clearChar(display_device,currentPosVal2,POSY);
-            displayChar(display_device, currentPosVal2, POSY, val);
+        //first value of temp2
+        if(temp.val2 < 10){
+            clearChar(display_device,currentPosVal2,POSY); //clear previous char
                    
+            currentPosVal2 = POS4; //update location 
+            clearChar(display_device,currentPosVal2,POSY);
+            displayChar(display_device, currentPosVal2, POSY, temp.val2);
+                
+            currentPosVal1 = POS3;
+              
+        }
+                
+        else if(temp.val2 > 9){
+                //if temp.val1 is double digit
+                    
+            int num2 = temp.val2;
+
+            int secondDigit, firstDigit = 0;
+            secondDigit = num2 % 10;
+            firstDigit = num2 / 10;
+            printf("TEMPVAL2 %d %d\n", firstDigit, secondDigit);
+            currentPosVal1 = POS3;
+            clearChar(display_device,POS3,POSY);
+            displayChar(display_device, POS3, POSY, firstDigit);
+            clearChar(display_device,POS4, POSY);
+            displayChar(display_device, POS4, POSY, secondDigit);    
         }
         //draw the dot in the middle and the 'C'
 
@@ -439,14 +460,15 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         displayChar(display_device, POSCOL, POSY, '.');
 
         //draw C
-        clearChar(display_device, POS4, POSY);
-        displayChar(display_device, POS4, POSY, 'C'); 
+        //clearChar(display_device, POS4, POSY);
+        //displayChar(display_device, POS4, POSY, 'C'); 
 
         k_msleep(500);//wait a bit 
         
         int val = gpio_pin_get_dt(&button);
         if(val != 0){
             printf("exit\n");
+            gpio_pin_set_dt(&celsius, 0); //turn off LED when exiting
             break;
         }
         
@@ -458,7 +480,111 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
 }
 
 
+void clearLEDs(const struct device *dev, int state){
 
+    
+
+    const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0),gpios);
+    const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1),gpios);
+    const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(DT_ALIAS(led2),gpios);
+    const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(DT_ALIAS(led3),gpios);
+    const struct gpio_dt_spec led4 = GPIO_DT_SPEC_GET(DT_ALIAS(led4),gpios);
+    const struct gpio_dt_spec led5 = GPIO_DT_SPEC_GET(DT_ALIAS(led5),gpios);
+    const struct gpio_dt_spec led6 = GPIO_DT_SPEC_GET(DT_ALIAS(led6),gpios);
+    const struct gpio_dt_spec led7 = GPIO_DT_SPEC_GET(DT_ALIAS(led7),gpios);
+    const struct gpio_dt_spec led8 = GPIO_DT_SPEC_GET(DT_ALIAS(led8),gpios);
+    const struct gpio_dt_spec led9 = GPIO_DT_SPEC_GET(DT_ALIAS(led9),gpios);
+    const struct gpio_dt_spec led10 = GPIO_DT_SPEC_GET(DT_ALIAS(led10),gpios);
+    const struct gpio_dt_spec led11 = GPIO_DT_SPEC_GET(DT_ALIAS(led11),gpios);
+    const struct gpio_dt_spec led12 = GPIO_DT_SPEC_GET(DT_ALIAS(led12),gpios);
+    const struct gpio_dt_spec led13 = GPIO_DT_SPEC_GET(DT_ALIAS(led13),gpios);
+    const struct gpio_dt_spec led14 = GPIO_DT_SPEC_GET(DT_ALIAS(led14),gpios);
+    const struct gpio_dt_spec led15 = GPIO_DT_SPEC_GET(DT_ALIAS(led15),gpios);
+    const struct gpio_dt_spec led16 = GPIO_DT_SPEC_GET(DT_ALIAS(led16),gpios);
+    const struct gpio_dt_spec led17 = GPIO_DT_SPEC_GET(DT_ALIAS(led17),gpios);
+    const struct gpio_dt_spec led18 = GPIO_DT_SPEC_GET(DT_ALIAS(led18),gpios);
+    const struct gpio_dt_spec led19 = GPIO_DT_SPEC_GET(DT_ALIAS(led19),gpios);
+    const struct gpio_dt_spec led20 = GPIO_DT_SPEC_GET(DT_ALIAS(led20),gpios);
+    const struct gpio_dt_spec led21 = GPIO_DT_SPEC_GET(DT_ALIAS(led21),gpios);
+    const struct gpio_dt_spec led22 = GPIO_DT_SPEC_GET(DT_ALIAS(led22),gpios);
+    const struct gpio_dt_spec led23 = GPIO_DT_SPEC_GET(DT_ALIAS(led23),gpios);
+    const struct gpio_dt_spec led24 = GPIO_DT_SPEC_GET(DT_ALIAS(led24),gpios);
+    const struct gpio_dt_spec led25 = GPIO_DT_SPEC_GET(DT_ALIAS(led25),gpios);
+    const struct gpio_dt_spec led26 = GPIO_DT_SPEC_GET(DT_ALIAS(led26),gpios);
+    const struct gpio_dt_spec led27 = GPIO_DT_SPEC_GET(DT_ALIAS(led27),gpios);
+    const struct gpio_dt_spec led28 = GPIO_DT_SPEC_GET(DT_ALIAS(led28),gpios);
+    const struct gpio_dt_spec led29 = GPIO_DT_SPEC_GET(DT_ALIAS(led29),gpios);
+    const struct gpio_dt_spec led30 = GPIO_DT_SPEC_GET(DT_ALIAS(led30),gpios);
+    const struct gpio_dt_spec led31 = GPIO_DT_SPEC_GET(DT_ALIAS(led31),gpios);
+
+    gpio_pin_configure_dt(&led0, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led1, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led2, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led3, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led4, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led5, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led6, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led7, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led8, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led9, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led10, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led11, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led12, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led13, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led14, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led15, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led16, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led17, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led18, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led19, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led20, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led21, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led22, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led23, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led24, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led25, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led26, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led27, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led28, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&led29, GPIO_OUTPUT);    
+    gpio_pin_configure_dt(&led30, GPIO_OUTPUT);    
+    gpio_pin_configure_dt(&led31, GPIO_OUTPUT); 
+
+
+    gpio_pin_set_dt(&led0, state);
+    gpio_pin_set_dt(&led1, state);
+    gpio_pin_set_dt(&led2, state);
+    gpio_pin_set_dt(&led3, state);
+    gpio_pin_set_dt(&led4, state);
+    gpio_pin_set_dt(&led5, state);
+    gpio_pin_set_dt(&led6, state);
+    gpio_pin_set_dt(&led7, state);
+    gpio_pin_set_dt(&led8, state);
+    gpio_pin_set_dt(&led9, state);
+    gpio_pin_set_dt(&led10, state);
+    gpio_pin_set_dt(&led11, state);
+    gpio_pin_set_dt(&led12, state);
+    gpio_pin_set_dt(&led13, state);
+    gpio_pin_set_dt(&led14, state);
+    gpio_pin_set_dt(&led15, state);
+    gpio_pin_set_dt(&led16, state);
+    gpio_pin_set_dt(&led17, state);
+    gpio_pin_set_dt(&led18, state);
+    gpio_pin_set_dt(&led19, state);
+    gpio_pin_set_dt(&led20, state);
+    gpio_pin_set_dt(&led21, state);
+    gpio_pin_set_dt(&led22, state);
+    gpio_pin_set_dt(&led23, state);
+    gpio_pin_set_dt(&led24, state);
+    gpio_pin_set_dt(&led25, state);
+    gpio_pin_set_dt(&led26, state);
+    gpio_pin_set_dt(&led27, state);
+    gpio_pin_set_dt(&led28, state);
+    gpio_pin_set_dt(&led29, state);    
+    gpio_pin_set_dt(&led30, state);    
+    gpio_pin_set_dt(&led31, state);   
+    
+}
 
 
 
@@ -602,9 +728,6 @@ void updateDay(const struct device *rtc){
 
 
 
-
-     
-    
     rtc_get_time(rtc, &currTime);
     printf("currTime: %d\n",currTime.tm_wday);
     switch(currTime.tm_wday){
@@ -615,7 +738,6 @@ void updateDay(const struct device *rtc){
             break;
         case 1:
             printf("Monday\n");
-            //led_on(monday0, 1);
             gpio_pin_set_dt(&monday0, 1);
             gpio_pin_set_dt(&monday1, 1);
             break;
