@@ -433,6 +433,7 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         //first value of temp2
         if(tempFormatted < 10){
             clearChar(display_device,currentPosVal2,POSY); //clear previous char
+            displayChar(display_device, currentPosVal2, POSY, 0); //set it to 0 so it doesnt look empty
                    
             currentPosVal2 = POS4; //update location 
             clearChar(display_device,currentPosVal2,POSY);
