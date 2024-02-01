@@ -8,7 +8,7 @@
 //#include <zephyr/drivers/led.h>
 
 //TODO: font.h --> acsii table 
-
+//      fix temp display
 
 #include "font.h"
 
@@ -182,7 +182,7 @@ int main() {
 
         }
 
-
+        
         
         if(minute < 10 && (minute != prevMin)){
             clearChar(dev, currentPosMin,POSY); //clear previous char
@@ -425,29 +425,33 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
             displayChar(display_device, POS2, POSY, secondDigit);    
         }
 
+        int tempFormatted = temp.val2;
+        printf("tempformatted 1: %d\n", tempFormatted);
+        tempFormatted = tempFormatted / 10000;
+        printf("tempformatted 2: %d\n", tempFormatted);
         
         //first value of temp2
-        if(temp.val2 < 10){
+        if(tempFormatted < 10){
             clearChar(display_device,currentPosVal2,POSY); //clear previous char
                    
             currentPosVal2 = POS4; //update location 
             clearChar(display_device,currentPosVal2,POSY);
-            displayChar(display_device, currentPosVal2, POSY, temp.val2);
+            displayChar(display_device, currentPosVal2, POSY, tempFormatted);
                 
             currentPosVal1 = POS3;
+            printf("TEMPval2 %d\n",temp.val2);
               
         }
-                
-        else if(temp.val2 > 9){
-                //if temp.val1 is double digit
+        
+        else if(tempFormatted > 9){
                     
-            int num2 = temp.val2;
+            int num2 = tempFormatted;
 
             int secondDigit, firstDigit = 0;
             secondDigit = num2 % 10;
             firstDigit = num2 / 10;
             printf("TEMPVAL2 %d %d\n", firstDigit, secondDigit);
-            currentPosVal1 = POS3;
+            currentPosVal2 = POS3;
             clearChar(display_device,POS3,POSY);
             displayChar(display_device, POS3, POSY, firstDigit);
             clearChar(display_device,POS4, POSY);
