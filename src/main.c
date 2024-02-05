@@ -404,9 +404,12 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
     int currentPosVal2 = POS3;
 
     const struct gpio_dt_spec celsius = GPIO_DT_SPEC_GET(DT_ALIAS(led23),gpios);
+    const struct gpio_dt_spec fahrenheit = GPIO_DT_SPEC_GET(DT_ALIAS(led22),gpios);
 
     gpio_pin_configure_dt(&celsius, GPIO_OUTPUT);
+    gpio_pin_configure_dt(&fahrenheit, GPIO_OUTPUT);
     gpio_pin_set_dt(&celsius, 1); //turn on °C LED
+    bool isFahrenheit = false;
     
     while(true){
         struct sensor_value temp;
@@ -415,24 +418,27 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
 
         printf("%d.%d°C\n",temp.val1,temp.val2);
         
-
-
+        int tempFormatted1 = temp.val1;
+        if(isFahrenheit){
+            tempFormatted1 = (tempFormatted1 * 1.8)+32; //calculate to fahrenheit
+            
+        }
         //first value of temp
-        if(temp.val1 < 10){
+        if(tempFormatted1 < 10){
             clearChar(display_device,currentPosVal1,POSY); //clear previous char
            
             currentPosVal1 = POS2; //update location 
             clearChar(display_device,currentPosVal1,POSY);
-            displayChar(display_device, currentPosVal1, POSY, temp.val1 + '0');
+            displayChar(display_device, currentPosVal1, POSY, tempFormatted1 + '0');
            
             currentPosVal1 = POS1;
         
         }
         
-        else if(temp.val1 > 9){
-        //if temp.val1 is double digit
+        else if(tempFormatted1 > 9){
+        //if tempFormatted1 is double digit
             
-            int num1 = temp.val1;
+            int num1 = tempFormatted1;
                         
             int secondDigit, firstDigit = 0;
             secondDigit = num1 % 10;
@@ -446,28 +452,31 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
             displayChar(display_device, POS2, POSY, secondDigit + '0');    
         }
 
-        int tempFormatted = temp.val2;
-        printf("tempformatted 1: %d\n", tempFormatted);
-        tempFormatted = tempFormatted / 10000;
-        printf("tempformatted 2: %d\n", tempFormatted);
+        int tempFormatted2 = temp.val2;
         
+        printf("tempformatted 1: %d\n", tempFormatted2);
+        tempFormatted2 = tempFormatted2 / 10000;
+        printf("tempformatted 2: %d\n", tempFormatted2);
+        if(isFahrenheit){
+            tempFormatted2 = (tempFormatted2 * 1.8)+32; 
+        }
         //first value of temp2
-        if(tempFormatted < 10){
+        if(tempFormatted2 < 10){
             clearChar(display_device,currentPosVal2,POSY); //clear previous char
             displayChar(display_device, currentPosVal2, POSY, '0'); //set it to 0 so it doesnt look empty
                    
             currentPosVal2 = POS4; //update location 
             clearChar(display_device,currentPosVal2,POSY);
-            displayChar(display_device, currentPosVal2, POSY, tempFormatted + '0');
+            displayChar(display_device, currentPosVal2, POSY, tempFormatted2 + '0');
                 
             currentPosVal1 = POS3;
             printf("TEMPval2 %d\n",temp.val2);
               
         }
         
-        else if(tempFormatted > 9){
+        else if(tempFormatted2 > 9){
                     
-            int num2 = tempFormatted;
+            int num2 = tempFormatted2;
 
             int secondDigit, firstDigit = 0;
             secondDigit = num2 % 10;
@@ -495,7 +504,25 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         if(val != 0){
             printf("exit\n");
             gpio_pin_set_dt(&celsius, 0); //turn off LED when exiting
+            gpio_pin_set_dt(&fahrenheit, 0);
             break;
+        }
+        int val2 = gpio_pin_get_dt(&button2);
+        if(val2 != 0){
+            if(isFahrenheit){
+                printf("switching back to C\n");
+                gpio_pin_set_dt(&fahrenheit, 0);
+                gpio_pin_set_dt(&celsius, 1);
+                isFahrenheit = false;
+            }
+            else{
+                
+                printf("switching to fahrenheit\n");
+                gpio_pin_set_dt(&celsius, 0); //turn off C-LED
+
+                gpio_pin_set_dt(&fahrenheit, 1);
+                isFahrenheit = true;
+            }
         }
         
     }
