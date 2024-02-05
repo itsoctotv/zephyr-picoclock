@@ -5,10 +5,11 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/adc.h>
 //#include <zephyr/drivers/led.h>
 
 //TODO: font.h --> acsii table 
-//      fix temp display
+
 
 #include "font.h"
 
@@ -41,6 +42,11 @@ struct display_capabilities caps;
 const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 const struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
+
+//const struct device *adc = DEVICE_DT_GET(); //stuff
+
+
+
 
 int main() {
 
@@ -78,18 +84,18 @@ int main() {
    
     printf("x res: %d\ny res: %d\n",caps.x_resolution, caps.y_resolution);
     printf("size font: %d   %d   %d\n", sizeof(FONT), sizeof(FONT[0]), (sizeof(FONT) / sizeof(FONT[0])) );
-    printf("read font: %d\n", readChar('A'));
+    //printf("read font: %d\n", readChar('A'));
 
     clearDisplay(dev);
 
     //writing stuff
     
-    displayChar(dev, POS1, POSY,'A');
-    displayChar(dev, POS2, POSY,'B');
+    /*displayChar(dev, POS1, POSY,'0');
+    displayChar(dev, POS2, POSY,'1');
     displayChar(dev, POSCOL, POSY,':');
-    displayChar(dev, POS3, POSY,1);
-    displayChar(dev, POS4, POSY,2);    
-
+    displayChar(dev, POS3, POSY,2);
+    displayChar(dev, POS4, POSY,3);    
+*/
     int hour,minute,seconds,day,currentPosHr, currentPosMin = 0;
     
     clearDisplay(dev);
@@ -97,6 +103,9 @@ int main() {
     int prevHr,prevMin,prevDay = -1;
     int returnSwitchTemp = -1;
     
+    printf("Readchar: %d\n%d\n%d\n\n", FONT[readChar('0')][0],FONT[readChar('1')][0],FONT[readChar('2')][0]);
+    
+
 
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -129,9 +138,27 @@ int main() {
             //quick update day when pressing btn3
             updateDay(rtc);
             clearLEDs(dev, 1);
-            k_msleep(1000);
+            k_msleep(500);
             clearLEDs(dev, 0);
-                       
+            /*printf("ADC stuff\n");
+            char buf[16] = {};
+            struct adc_sequence adcseq = {
+                .options = NULL,
+                .channels = 0,
+                .buffer = buf,
+                .buffer_size = sizeof(buf),
+                .resolution = 0,
+                .oversampling = 0,
+                .calibrate = false 
+            };
+            
+            int ret = adc_read(adc, &adcseq);
+            printf("return value adc: %d\n",ret);
+            for(int i = 0; i < sizeof(buf); i++) {
+                printf("%d\n",buf[i]);
+                
+            } */  
+            printf("end\n");    
         }
         
         if(returnSwitchTemp == 0){
@@ -156,11 +183,11 @@ int main() {
         
         if(hour < 10 && (hour != prevHr)){
             clearChar(dev,currentPosHr,POSY); //clear previous char
-            displayChar(dev, currentPosHr, POSY, 0); //set it to 0 so it doesnt look empty
+            displayChar(dev, currentPosHr, POSY, '0'); //set it to 0 so it doesnt look empty
             currentPosHr = POS2; //update location 
             clearChar(dev,currentPosHr,POSY);
-            displayChar(dev, currentPosHr, POSY, hour);
-            prevHr = hour;
+            displayChar(dev, currentPosHr, POSY, hour + '0'); //converting it to a char so it looks up the ascii table 
+             prevHr = hour;
             currentPosHr = POS1;
 
         }
@@ -175,9 +202,9 @@ int main() {
             currentPosHr = POS1;
             
             clearChar(dev,POS1,POSY);
-            displayChar(dev, POS1, POSY, firstDigit);
+            displayChar(dev, POS1, POSY, firstDigit + '0');
             clearChar(dev,POS2, POSY);
-            displayChar(dev, POS2, POSY, secondDigit);
+            displayChar(dev, POS2, POSY, secondDigit + '0');
             prevHr = hour;
 
         }
@@ -186,12 +213,12 @@ int main() {
         
         if(minute < 10 && (minute != prevMin)){
             clearChar(dev, currentPosMin,POSY); //clear previous char
-            displayChar(dev, currentPosMin, POSY, 0); //set it to 0 so it doesnt look empty
+            displayChar(dev, currentPosMin, POSY, '0'); //set it to 0 so it doesnt look empty
 
 
             currentPosMin = POS4; //update location 
             clearChar(dev,currentPosMin,POSY);
-            displayChar(dev, currentPosMin, POSY, minute);
+            displayChar(dev, currentPosMin, POSY, minute + '0');
             prevMin = minute;
             currentPosMin = POS3;
 
@@ -206,9 +233,9 @@ int main() {
             currentPosMin = POS3;
             
             clearChar(dev,POS3,POSY);
-            displayChar(dev, POS3, POSY, firstDigit);
+            displayChar(dev, POS3, POSY, firstDigit + '0');
             clearChar(dev,POS4, POSY);
-            displayChar(dev, POS4, POSY, secondDigit);    
+            displayChar(dev, POS4, POSY, secondDigit + '0');    
             prevMin = minute;
         
         }
@@ -321,8 +348,8 @@ int displayChar(const struct device *dev, int x, int y, char c){
     //    0110 1001
     // 1. line|2. line (it's probably way too complicated than it should be)
 
-    int indexFirstLine = 1;
-    int indexSecondLine = 2;
+    int indexFirstLine = 0;
+    int indexSecondLine = 1;
     for(int i = 0; i < sizeof(charbuf); i++){
         unsigned char firstLine = FONT[index][indexFirstLine];
         unsigned char secondLine = FONT[index][indexSecondLine];
@@ -348,14 +375,8 @@ int displayChar(const struct device *dev, int x, int y, char c){
     
 }
 int readChar(char c){
-    int totalRows = sizeof(FONT) / sizeof(FONT[0]);
-    for(int i = 0; i < totalRows; i++){
-        if(FONT[i][0] == c){
-            return i; //return index inside FONT[];
-        }
-        
-    }
-    return -1; //nothing found
+    return c;
+    
     
 }
 void blinkChar(const struct device *dev, int x, int y, char c){
@@ -402,7 +423,7 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
            
             currentPosVal1 = POS2; //update location 
             clearChar(display_device,currentPosVal1,POSY);
-            displayChar(display_device, currentPosVal1, POSY, temp.val1);
+            displayChar(display_device, currentPosVal1, POSY, temp.val1 + '0');
            
             currentPosVal1 = POS1;
         
@@ -420,9 +441,9 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
             currentPosVal1 = POS1;
             
             clearChar(display_device,POS1,POSY);
-            displayChar(display_device, POS1, POSY, firstDigit);
+            displayChar(display_device, POS1, POSY, firstDigit + '0');
             clearChar(display_device,POS2, POSY);
-            displayChar(display_device, POS2, POSY, secondDigit);    
+            displayChar(display_device, POS2, POSY, secondDigit + '0');    
         }
 
         int tempFormatted = temp.val2;
@@ -433,11 +454,11 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         //first value of temp2
         if(tempFormatted < 10){
             clearChar(display_device,currentPosVal2,POSY); //clear previous char
-            displayChar(display_device, currentPosVal2, POSY, 0); //set it to 0 so it doesnt look empty
+            displayChar(display_device, currentPosVal2, POSY, '0'); //set it to 0 so it doesnt look empty
                    
             currentPosVal2 = POS4; //update location 
             clearChar(display_device,currentPosVal2,POSY);
-            displayChar(display_device, currentPosVal2, POSY, tempFormatted);
+            displayChar(display_device, currentPosVal2, POSY, tempFormatted + '0');
                 
             currentPosVal1 = POS3;
             printf("TEMPval2 %d\n",temp.val2);
@@ -454,9 +475,9 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
             printf("TEMPVAL2 %d %d\n", firstDigit, secondDigit);
             currentPosVal2 = POS3;
             clearChar(display_device,POS3,POSY);
-            displayChar(display_device, POS3, POSY, firstDigit);
+            displayChar(display_device, POS3, POSY, firstDigit + '0');
             clearChar(display_device,POS4, POSY);
-            displayChar(display_device, POS4, POSY, secondDigit);    
+            displayChar(display_device, POS4, POSY, secondDigit + '0');    
         }
         //draw the dot in the middle and the 'C'
 
@@ -590,12 +611,6 @@ void clearLEDs(const struct device *dev, int state){
     gpio_pin_set_dt(&led31, state);   
     
 }
-
-
-
-
-
-
 
 
 
