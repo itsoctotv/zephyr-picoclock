@@ -5,10 +5,9 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/adc.h>
+//#include <zephyr/drivers/adc.h>
 //#include <zephyr/drivers/led.h>
 
-//TODO: font.h --> acsii table 
 
 
 #include "font.h"
@@ -37,18 +36,20 @@ void displayString(const struct device *dev, int x, int y, char* s);
 
 void updateDay(const struct device *rtc);
 
+int setTimeAndDate(const struct device *rtc);
+
 struct display_capabilities caps;
 
 const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 const struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
 
-//const struct device *adc = DEVICE_DT_GET(); //stuff
 
 
 
 
 int main() {
+
 
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
@@ -61,7 +62,7 @@ int main() {
     gpio_pin_configure_dt(&button2, GPIO_INPUT);
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
     
-     struct rtc_time time;/* = {
+    struct rtc_time time;/* = {
         .tm_sec = 0,            //sec
         .tm_min = 54,           //minute
         .tm_hour = 10,          //hour
@@ -77,7 +78,9 @@ int main() {
     
     rtc_set_time(rtc,&time);
    */
-    
+
+
+
     display_get_capabilities(dev, &caps);
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01 );
     
@@ -90,12 +93,12 @@ int main() {
 
     //writing stuff
     
-    /*displayChar(dev, POS1, POSY,'0');
+    displayChar(dev, POS1, POSY,'0');
     displayChar(dev, POS2, POSY,'1');
     displayChar(dev, POSCOL, POSY,':');
     displayChar(dev, POS3, POSY,2);
     displayChar(dev, POS4, POSY,3);    
-*/
+    
     int hour,minute,seconds,day,currentPosHr, currentPosMin = 0;
     
     clearDisplay(dev);
@@ -105,6 +108,13 @@ int main() {
     
     printf("Readchar: %d\n%d\n%d\n\n", FONT[readChar('0')][0],FONT[readChar('1')][0],FONT[readChar('2')][0]);
     
+
+    printf("bcd test\n");
+    uint8_t returnBCD = bin2bcd(0b00110110);
+    printf("bcd test answer in hex: %c\n", returnBCD+0x30);
+
+     
+
 
 
     while(true){
@@ -130,7 +140,10 @@ int main() {
             
         }
         if(val2 != 0){
-            scrollText(dev,':');
+            //scrollText(dev,':');
+
+            //set time and date (wip)
+            setTimeAndDate(rtc);
         }
 
         if(val3 != 0){
@@ -140,24 +153,6 @@ int main() {
             clearLEDs(dev, 1);
             k_msleep(500);
             clearLEDs(dev, 0);
-            /*printf("ADC stuff\n");
-            char buf[16] = {};
-            struct adc_sequence adcseq = {
-                .options = NULL,
-                .channels = 0,
-                .buffer = buf,
-                .buffer_size = sizeof(buf),
-                .resolution = 0,
-                .oversampling = 0,
-                .calibrate = false 
-            };
-            
-            int ret = adc_read(adc, &adcseq);
-            printf("return value adc: %d\n",ret);
-            for(int i = 0; i < sizeof(buf); i++) {
-                printf("%d\n",buf[i]);
-                
-            } */  
             printf("end\n");    
         }
         
@@ -456,10 +451,17 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         
         printf("tempformatted 1: %d\n", tempFormatted2);
         tempFormatted2 = tempFormatted2 / 10000;
-        printf("tempformatted 2: %d\n", tempFormatted2);
         if(isFahrenheit){
-            tempFormatted2 = (tempFormatted2 * 1.8)+32; 
+            tempFormatted2 = (tempFormatted2 * 1.8)+32;
+            if(tempFormatted2 > 99){
+                tempFormatted2 = tempFormatted2 / 10;
+                printf("tempppp: %d\n",tempFormatted2);
+            }
+            
+           
         }
+        printf("tempformatted 2: %d\n", tempFormatted2);
+        
         //first value of temp2
         if(tempFormatted2 < 10){
             clearChar(display_device,currentPosVal2,POSY); //clear previous char
@@ -477,7 +479,7 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         else if(tempFormatted2 > 9){
                     
             int num2 = tempFormatted2;
-
+            
             int secondDigit, firstDigit = 0;
             secondDigit = num2 % 10;
             firstDigit = num2 / 10;
@@ -817,4 +819,18 @@ void updateDay(const struct device *rtc){
             printf("Failed to read Weekdays!\n");
             
     }
+}
+
+int setTimeAndDate(const struct device *rtc){
+
+    printf("Set time; in format: HH:MM:SS\n\n\n");
+
+    
+
+
+    printf("exiting\n");
+    
+    
+
+    return 0; 
 }

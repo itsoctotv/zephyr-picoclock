@@ -4,7 +4,7 @@
 //FONT[1][2]: 
 //      1 = total elements
 //      2 = lines inside elements
-const unsigned char FONT[128][8] = {
+const unsigned char FONT[128][7] = {
     //values in binary because easier to read
     //ascii values, empty if none used
     { /* ascii_0 */ },
