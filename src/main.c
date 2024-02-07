@@ -5,6 +5,7 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/sys/util.h>
 //#include <zephyr/drivers/adc.h>
 //#include <zephyr/drivers/led.h>
 
@@ -110,13 +111,34 @@ int main() {
     
 
     printf("bcd test\n");
-    uint8_t returnBCD = bin2bcd(0b00110110);
-    printf("bcd test answer in hex: %c\n", returnBCD+0x30);
+    
+    uint8_t val = 10;
+    uint8_t bcd = bin2bcd(val);
 
-     
+/*
+    bcd:
+    dec to bin: 
+    12
+    0000 1100
+    bcd:
+dec: 1    2
+    0001 0010
 
+*/
+    uint8_t maskFirstDigit = 0b11110000;
+    uint8_t maskSecondDigit = 0b00001111;
+    
+    uint8_t firstDigit = bcd & maskFirstDigit;    //mask the first 4bit
+    uint8_t secondDigit = bcd & maskSecondDigit;  //mask the second 4bit
+    
+    firstDigit += 0x30; //add value to go to the 0-9 values in the ascii table
+    secondDigit += 0x30;
 
-
+    printf("first digit ascii num: %x char: %c\n", firstDigit,(char)firstDigit);
+    printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
+    
+    for(;;);
+    
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
         
