@@ -112,7 +112,7 @@ int main() {
 
     printf("bcd test\n");
     
-    uint8_t val = 10;
+    uint8_t val = 12;
     uint8_t bcd = bin2bcd(val);
 
 /*
@@ -125,19 +125,16 @@ dec: 1    2
     0001 0010
 
 */
-    uint8_t maskFirstDigit = 0b11110000;
-    uint8_t maskSecondDigit = 0b00001111;
+    uint8_t mask = 0b00001111;
     
-    uint8_t firstDigit = bcd & maskFirstDigit;    //mask the first 4bit
-    uint8_t secondDigit = bcd & maskSecondDigit;  //mask the second 4bit
+    uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
+    uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table
     
-    firstDigit += 0x30; //add value to go to the 0-9 values in the ascii table
-    secondDigit += 0x30;
 
     printf("first digit ascii num: %x char: %c\n", firstDigit,(char)firstDigit);
     printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
     
-    for(;;);
+    
     
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -210,12 +207,15 @@ dec: 1    2
         }
 //seperate 2digit int into 2 seperate ints https://www.log2base2.com/c-examples/loop/split-a-number-into-digits-in-c.html
         else if(hour > 9 && (hour != prevHr)){
-            int num = hour;
-            int secondDigit, firstDigit = 0;
-            secondDigit = num % 10;
-            firstDigit = num / 10;
-            printf("HOUR %d %d\n", firstDigit, secondDigit);
 
+            uint8_t bcd = bin2bcd(hour);
+
+
+  
+            uint8_t mask = 0b00001111;
+    
+            uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
+            uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table
             currentPosHr = POS1;
             
             clearChar(dev,POS1,POSY);
@@ -241,18 +241,19 @@ dec: 1    2
 
         }
         else if(minute > 9 && (minute != prevMin)){
-            int num = minute;
-            int secondDigit, firstDigit = 0;
-            secondDigit = num % 10;
-            firstDigit = num / 10;
-            printf("MINUTE %d %d\n", firstDigit, secondDigit);
 
+            uint8_t bcd = bin2bcd(minute);
+
+            uint8_t mask = 0b00001111;
+    
+            uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
+            uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table            
             currentPosMin = POS3;
             
             clearChar(dev,POS3,POSY);
-            displayChar(dev, POS3, POSY, firstDigit + '0');
+            displayChar(dev, POS3, POSY, firstDigit);
             clearChar(dev,POS4, POSY);
-            displayChar(dev, POS4, POSY, secondDigit + '0');    
+            displayChar(dev, POS4, POSY, secondDigit);    
             prevMin = minute;
         
         }
@@ -455,18 +456,19 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         else if(tempFormatted1 > 9){
         //if tempFormatted1 is double digit
             
-            int num1 = tempFormatted1;
-                        
-            int secondDigit, firstDigit = 0;
-            secondDigit = num1 % 10;
-            firstDigit = num1 / 10;
-            printf("TEMPVAL1 %d %d\n", firstDigit, secondDigit);
+            uint8_t bcd = bin2bcd(tempFormatted1);
+
+            uint8_t mask = 0b00001111;
+    
+            uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
+            uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table            
+
             currentPosVal1 = POS1;
             
             clearChar(display_device,POS1,POSY);
-            displayChar(display_device, POS1, POSY, firstDigit + '0');
+            displayChar(display_device, POS1, POSY, firstDigit);
             clearChar(display_device,POS2, POSY);
-            displayChar(display_device, POS2, POSY, secondDigit + '0');    
+            displayChar(display_device, POS2, POSY, secondDigit);    
         }
 
         int tempFormatted2 = temp.val2;
@@ -499,18 +501,18 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         }
         
         else if(tempFormatted2 > 9){
-                    
-            int num2 = tempFormatted2;
-            
-            int secondDigit, firstDigit = 0;
-            secondDigit = num2 % 10;
-            firstDigit = num2 / 10;
-            printf("TEMPVAL2 %d %d\n", firstDigit, secondDigit);
+            uint8_t bcd = bin2bcd(tempFormatted2);
+
+            uint8_t mask = 0b00001111;
+    
+            uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
+            uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table            
+
             currentPosVal2 = POS3;
             clearChar(display_device,POS3,POSY);
-            displayChar(display_device, POS3, POSY, firstDigit + '0');
+            displayChar(display_device, POS3, POSY, firstDigit);
             clearChar(display_device,POS4, POSY);
-            displayChar(display_device, POS4, POSY, secondDigit + '0');    
+            displayChar(display_device, POS4, POSY, secondDigit);    
         }
         //draw the dot in the middle and the 'C'
 
