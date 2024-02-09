@@ -6,10 +6,6 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/util.h>
-//#include <zephyr/drivers/adc.h>
-//#include <zephyr/drivers/led.h>
-
-
 
 #include "font.h"
 
@@ -34,7 +30,7 @@ void clearLEDs(const struct device *dev, int state);
 
 void scrollText(const struct device *dev, char c);
 void displayString(const struct device *dev, int x, int y, char* s);
-
+https://stackoverflow.com/a/3082971
 void updateDay(const struct device *rtc);
 
 int setTimeAndDate(const struct device *rtc);
@@ -64,21 +60,21 @@ int main() {
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
     
     struct rtc_time time;/* = {
-        .tm_sec = 0,            //sec
-        .tm_min = 54,           //minute
-        .tm_hour = 10,          //hour
-        .tm_mday = 31,          //day of month
-        .tm_mon = 0,            //month
+        .tm_sec = 30,            //sec
+        .tm_min = 04,           //minute
+        .tm_hour = 13,          //hour
+        .tm_mday = 8,          //day of month
+        .tm_mon = 1,            //month
         .tm_year = 2024,        //year
-        .tm_wday = 3,           //weekday
-        .tm_yday = 31,          //yearday
+        .tm_wday = 4,           //weekday
+        .tm_yday = 39,          //yearday
         .tm_isdst = -1,         //daylight saving flag
         .tm_nsec = 1            //nanosec
     };
   
     
     rtc_set_time(rtc,&time);
-   */
+*/
 
 
 
@@ -87,8 +83,6 @@ int main() {
     
    
     printf("x res: %d\ny res: %d\n",caps.x_resolution, caps.y_resolution);
-    printf("size font: %d   %d   %d\n", sizeof(FONT), sizeof(FONT[0]), (sizeof(FONT) / sizeof(FONT[0])) );
-    //printf("read font: %d\n", readChar('A'));
 
     clearDisplay(dev);
 
@@ -100,18 +94,13 @@ int main() {
     displayChar(dev, POS3, POSY,2);
     displayChar(dev, POS4, POSY,3);    
     
-    int hour,minute,seconds,day,currentPosHr, currentPosMin = 0;
+    int hour,minute,day,currentPosHr, currentPosMin = 0;
     
     clearDisplay(dev);
     
     int prevHr,prevMin,prevDay = -1;
     int returnSwitchTemp = -1;
-    
-    printf("Readchar: %d\n%d\n%d\n\n", FONT[readChar('0')][0],FONT[readChar('1')][0],FONT[readChar('2')][0]);
-    
 
-    printf("bcd test\n");
-    
     uint8_t val = 12;
     uint8_t bcd = bin2bcd(val);
 
@@ -139,16 +128,12 @@ dec: 1    2
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
         
-        //seconds = time.tm_sec;
-
-        //button test
-
         //because of blinkChar() you'll have to wait until this if condition is checked in the while loop
         //just a simple example/test for the button; possible fix with "async interrupt handlers (?)"
         //https://docs.zephyrproject.org/latest/kernel/services/interrupts.html
         //for now press the button longer a bit to trigger the if statements in main() and switchToTemp() 
 
-        
+        //buttons
         int val = gpio_pin_get_dt(&button);
         int val2 = gpio_pin_get_dt(&button2);
         int val3 = gpio_pin_get_dt(&button3);
@@ -166,7 +151,7 @@ dec: 1    2
         }
 
         if(val3 != 0){
-            //displayString(dev, POS1, POSY, "ABC");
+            
             //quick update day when pressing btn3
             updateDay(rtc);
             clearLEDs(dev, 1);
@@ -182,13 +167,9 @@ dec: 1    2
             prevDay = -1;
             returnSwitchTemp = -1; //set it to -1 or any value to not trigger this statement again
         }
-
-
         
-            
         rtc_get_time(rtc, &time);
         
-
         hour = time.tm_hour;       
         minute = time.tm_min; 
         day = time.tm_wday;
@@ -201,17 +182,15 @@ dec: 1    2
             currentPosHr = POS2; //update location 
             clearChar(dev,currentPosHr,POSY);
             displayChar(dev, currentPosHr, POSY, hour + '0'); //converting it to a char so it looks up the ascii table 
-             prevHr = hour;
+            prevHr = hour;
             currentPosHr = POS1;
 
         }
-//seperate 2digit int into 2 seperate ints https://www.log2base2.com/c-examples/loop/split-a-number-into-digits-in-c.html
+//seperate 2digit int into 2 seperate ints via bcd 
         else if(hour > 9 && (hour != prevHr)){
 
             uint8_t bcd = bin2bcd(hour);
 
-
-  
             uint8_t mask = 0b00001111;
     
             uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
@@ -219,9 +198,9 @@ dec: 1    2
             currentPosHr = POS1;
             
             clearChar(dev,POS1,POSY);
-            displayChar(dev, POS1, POSY, firstDigit + '0');
+            displayChar(dev, POS1, POSY, firstDigit);
             clearChar(dev,POS2, POSY);
-            displayChar(dev, POS2, POSY, secondDigit + '0');
+            displayChar(dev, POS2, POSY, secondDigit);
             prevHr = hour;
 
         }
@@ -264,22 +243,15 @@ dec: 1    2
             prevDay = day;
             printf("updating day   %d %d\n",day, prevDay);
         }
-        
-
-        //workaround (fix it)
-        //k_msleep(500);    
-        //fix it with rtc alarm or similar instead of delays
-
-        
 
         blinkChar(dev, POSCOL, POSY, ':');
+
         /* TEST FOR FLICKERING 
         //flickers everytime on rtc_get_time call
         while(true){
             rtc_get_time(rtc, &time);
  
         }*/
-
     
        
 
@@ -313,17 +285,21 @@ int clearChar(const struct device *dev, int index, int y){
 }
 
 int clearDisplay(const struct device *dev){
-        
+
+    int x = 22;
+    int y = 7;
+
     uint8_t dispbuf[22] = { };
+
     struct display_buffer_descriptor disp_buf_desc = {
 
         .buf_size = sizeof(dispbuf),
-        .width = 22,
-        .height = 7,
-        .pitch = 22,
+        .width = x,
+        .height = y,
+        .pitch = x,
     };
+    memset(dispbuf, 0b00000000, sizeof(dispbuf)); 
      //clear the screen use whole-screen buffer
-    memset(dispbuf, 0b00000000, sizeof(dispbuf));
     int ret = display_write(dev, 0, 0, &disp_buf_desc, dispbuf);
     if(ret != 0){
         printf("display_write failed\n");
@@ -335,13 +311,8 @@ int clearDisplay(const struct device *dev){
 }
 
 int displayChar(const struct device *dev, int x, int y, char c){
-    //read the char from FONT
-    int index = readChar(c);
-    if(index == -1){
-        //nothing found, abort
-        printf("no char was found! \n");
-        return -1;
-    }
+    
+    uint8_t index = c;
 
     uint8_t charbuf[7] = { };
     memset(charbuf, 0b00000000, sizeof(charbuf));
@@ -390,11 +361,6 @@ int displayChar(const struct device *dev, int x, int y, char c){
 
     return 0;
 
-    
-}
-int readChar(char c){
-    return c;
-    
     
 }
 void blinkChar(const struct device *dev, int x, int y, char c){
@@ -519,10 +485,6 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         //draw dot
         clearChar(display_device, POSCOL, POSY);
         displayChar(display_device, POSCOL, POSY, '.');
-
-        //draw C
-        //clearChar(display_device, POS4, POSY);
-        //displayChar(display_device, POS4, POSY, 'C'); 
 
         k_msleep(500);//wait a bit 
         
@@ -847,14 +809,48 @@ void updateDay(const struct device *rtc){
 
 int setTimeAndDate(const struct device *rtc){
 
-    printf("Set time; in format: HH:MM:SS\n\n\n");
+    //printf("Set time;\n");
+    struct rtc_time time; 
+    int hourbuf = 0;
+    int minutebuf = 0;
+   
+    //printf("gimme hours (0-23): ");
+    int ret = scanf(" %d",&hourbuf);
+    printf("ret: %d\n",ret);
+    if(hourbuf < 24 && hourbuf > -1){
+        //set hours
+        time.tm_hour = hourbuf;
+        
+    }
+    else{
+        //fail
+        printf("give me a valid number\nexiting...\n");
+        return -1;
+    }
 
-    
+    printf("gimme minutes (0-59): ");
+    scanf(" %d",&minutebuf);
+
+    if(minutebuf < 60 && minutebuf > -1){
+        //set minutes
+        time.tm_min = minutebuf;
+    }
+    else{
+        //fail
+        printf("give me a valid minute/number\nexiting...\n");
+        return -1;        
+    }
 
 
-    printf("exiting\n");
+    //rtc_set_time(rtc,&time); turn off for now so it doesnt accidentally set the time 
+    printf("time all set!\n");
     
     
 
     return 0; 
 }
+
+
+
+
+
