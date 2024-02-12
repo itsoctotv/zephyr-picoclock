@@ -6,6 +6,8 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/drivers/adc.h>
+
 
 #include "font.h"
 
@@ -31,6 +33,8 @@ void scrollText(const struct device *dev, char c);
 void displayString(const struct device *dev, int x, int y, char* s);
 void updateDay(const struct device *rtc);
 
+void updateAutolight(const struct device *dev, const struct adc_dt_spec adc);
+
 int setTimeAndDate(const struct device *rtc);
 
 struct display_capabilities caps;
@@ -40,14 +44,20 @@ const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 const struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
 
 
+//basically copied example from zephyr/samples/drivers/adc
+//with the rpi_pico.overlay thing because nothing else worked
+//in boards/rpi_pico.overlay
+
+const struct adc_dt_spec adc_channel0 = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
+
+const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+
+const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
+
+const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
+
+
 int main() {
-
-
-    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
-
-    const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
-
-    const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
 
 
     gpio_pin_configure_dt(&button, GPIO_INPUT);
@@ -248,7 +258,7 @@ dec: 1    2
         }
 
         blinkChar(dev, POSCOL, POSY, ':');
-
+        updateAutolight(dev, adc_channel0);
         /* TEST FOR FLICKERING 
         //flickers everytime on rtc_get_time call
         while(true){
@@ -633,67 +643,53 @@ int dimmDisplay(const struct device *dev, uint8_t brightness){
     
 }
 
+void updateAutolight(const struct device *dev, const struct adc_dt_spec adc){
 
-//[WIP]
-void displayString(const struct device *dev, int x, int y, char* s){
-    printf("inside displaystring thing\n");
-    k_msleep(500);
-    int pos = x;
-    clearDisplay(dev);
-    for(int i = 0; i < sizeof(s); i++){
-        displayChar(dev, pos+5, y, s[i]); //goto next position for next char
-        
+	uint16_t buf;
+	struct adc_sequence sequence = {
+		.buffer = &buf,
+		/* buffer size in bytes, not number of samples */
+		.buffer_size = sizeof(buf),
+	};
+
+
+	adc_channel_setup_dt(&adc);
+	
+
+		
+	int32_t val_mv; //in mili Volts
+	adc_sequence_init_dt(&adc, &sequence);
+	int err = adc_read_dt(&adc, &sequence);
+	if (err < 0) {
+		printk("Could not read (%d)\n", err);
+    		
+	}
+	/*
+	 * If using differential mode, the 16 bit value
+	 * in the ADC sample buffer should be a signed 2's
+	 * complement value.
+	 */
+	if (adc.channel_cfg.differential) {
+		val_mv = (int32_t)((int16_t)buf);
+	} 
+	else {
+		val_mv = (int32_t)buf;
+	}
+	
+	adc_raw_to_millivolts_dt(&adc, &val_mv);
+	/* conversion to mV may not be supported, skip if not */
+    //printf("current mV: %d\n",val_mv);
+
+    //if over 1500mV is reached dimm the display
+    if(val_mv < 1500){ 
+        dimmDisplay(dev, 100);
     }
-    while(true){
-        
-        int val = gpio_pin_get_dt(&button3);
-        if(val != 0){
-            printf("exit\n");
-            clearDisplay(dev);
-            return;
-        }
-        printf("waiting for input\n");
-        k_msleep(500);
+    else if(val_mv > 1500){
+        dimmDisplay(dev, 1);
     }
-}
-
-void scrollText(const struct device *dev, char c){
-    clearDisplay(dev);
-
-    char singleLineBuff[1] = { };
-    memset(singleLineBuff, 0x00, sizeof(singleLineBuff));
-    struct display_buffer_descriptor char_buf_desc = {
-            .buf_size = sizeof(singleLineBuff),
-            .width =  1,
-            .height = 7,
-            .pitch =  1,
-        };
-    while(true){
-        for(int i = 0; i < 18; i++){
-            displayChar(dev, i+1, POSY, c);
-            display_write(dev, i, POSY, &char_buf_desc, singleLineBuff); //delete a single line
-            k_msleep(100);
-
-            
-            
-        }
-        for(int i = 19; i > 0; i--){
-            displayChar(dev, i-1, POSY, c);
-            display_write(dev, i+3, POSY, &char_buf_desc, singleLineBuff);
-            k_msleep(100);
-            
-        }
-
-        int val = gpio_pin_get_dt(&button2);
-        if(val != 0){
-            printf("exit\n");
-            break;
-        }
-    
-    }
-    clearDisplay(dev);
     
 }
+
 void updateDay(const struct device *rtc){
     struct rtc_time currTime;
 
@@ -812,6 +808,71 @@ void updateDay(const struct device *rtc){
     }
 }
 
+
+
+
+
+
+//[WIP]
+void displayString(const struct device *dev, int x, int y, char* s){
+    printf("inside displaystring thing\n");
+    k_msleep(500);
+    int pos = x;
+    clearDisplay(dev);
+    for(int i = 0; i < sizeof(s); i++){
+        displayChar(dev, pos+5, y, s[i]); //goto next position for next char
+        
+    }
+    while(true){
+        
+        int val = gpio_pin_get_dt(&button3);
+        if(val != 0){
+            printf("exit\n");
+            clearDisplay(dev);
+            return;
+        }
+        printf("waiting for input\n");
+        k_msleep(500);
+    }
+}
+
+void scrollText(const struct device *dev, char c){
+    clearDisplay(dev);
+
+    char singleLineBuff[1] = { };
+    memset(singleLineBuff, 0x00, sizeof(singleLineBuff));
+    struct display_buffer_descriptor char_buf_desc = {
+            .buf_size = sizeof(singleLineBuff),
+            .width =  1,
+            .height = 7,
+            .pitch =  1,
+        };
+    while(true){
+        for(int i = 0; i < 18; i++){
+            displayChar(dev, i+1, POSY, c);
+            display_write(dev, i, POSY, &char_buf_desc, singleLineBuff); //delete a single line
+            k_msleep(100);
+
+            
+            
+        }
+        for(int i = 19; i > 0; i--){
+            displayChar(dev, i-1, POSY, c);
+            display_write(dev, i+3, POSY, &char_buf_desc, singleLineBuff);
+            k_msleep(100);
+            
+        }
+
+        int val = gpio_pin_get_dt(&button2);
+        if(val != 0){
+            printf("exit\n");
+            break;
+        }
+    
+    }
+    clearDisplay(dev);
+    
+}
 int setTimeAndDate(const struct device *rtc){
 
     //printf("Set time;\n");
