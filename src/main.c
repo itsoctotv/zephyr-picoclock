@@ -19,18 +19,16 @@
 
 
 int displayChar(const struct device *dev, int x, int y, char c);
-int readChar(char c);
 int clearChar(const struct device *dev, int index, int y);
 int clearDisplay(const struct device *dev);
 void blinkChar(const struct device *dev, int x, int y, char c);
 void updateTemp(const struct device *dev);
 int switchToTemp(const struct device *display_device,const struct device *temp_device);
 void clearLEDs(const struct device *dev, int state);
-
+int dimmDisplay(const struct device *dev, uint8_t brightness);
 
 void scrollText(const struct device *dev, char c);
 void displayString(const struct device *dev, int x, int y, char* s);
-https://stackoverflow.com/a/3082971
 void updateDay(const struct device *rtc);
 
 int setTimeAndDate(const struct device *rtc);
@@ -40,9 +38,6 @@ struct display_capabilities caps;
 const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 const struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
-
-
-
 
 
 int main() {
@@ -123,7 +118,7 @@ dec: 1    2
     printf("first digit ascii num: %x char: %c\n", firstDigit,(char)firstDigit);
     printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
     
-    
+    bool isDimm = false;
     
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -150,14 +145,22 @@ dec: 1    2
             setTimeAndDate(rtc);
         }
 
+        
         if(val3 != 0){
-            
-            //quick update day when pressing btn3
-            updateDay(rtc);
-            clearLEDs(dev, 1);
-            k_msleep(500);
-            clearLEDs(dev, 0);
-            printf("end\n");    
+            //toggle between dimm and bright
+            if(!isDimm){
+                printf("dimming display\n");    
+                dimmDisplay(dev, 1);
+                isDimm = true;
+                
+            }
+            else if(isDimm){
+                int ret = dimmDisplay(dev, 100);    
+                printf("back to normal: %d\n", ret);
+                isDimm = false;
+                
+            }
+            k_msleep(100);
         }
         
         if(returnSwitchTemp == 0){
@@ -253,8 +256,6 @@ dec: 1    2
  
         }*/
     
-       
-
     }    
     
 
@@ -310,7 +311,7 @@ int clearDisplay(const struct device *dev){
     }
 }
 
-int displayChar(const struct device *dev, int x, int y, char c){
+int displayChar(const struct device *dev, int x, int y, char c) {
     
     uint8_t index = c;
 
@@ -627,6 +628,10 @@ void clearLEDs(const struct device *dev, int state){
     
 }
 
+int dimmDisplay(const struct device *dev, uint8_t brightness){
+    return display_set_brightness(dev,brightness);
+    
+}
 
 
 //[WIP]
@@ -849,8 +854,5 @@ int setTimeAndDate(const struct device *rtc){
 
     return 0; 
 }
-
-
-
 
 
