@@ -65,8 +65,8 @@ int main() {
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
     
     struct rtc_time time;/* = {
-        .tm_sec = 30,            //sec
-        .tm_min = 31,           //minute
+        .tm_sec = 0,            //sec
+        .tm_min = 47,           //minute
         .tm_hour = 9,          //hour
         .tm_mday = 13,          //day of month
         .tm_mon = 1,            //month
@@ -80,8 +80,8 @@ int main() {
     
     rtc_set_time(rtc,&time);
 
-*/
 
+*/
 
     display_get_capabilities(dev, &caps);
     display_set_pixel_format(dev, PIXEL_FORMAT_MONO01 );
@@ -878,6 +878,9 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
 
     struct rtc_time time; 
 
+    rtc_get_time(rtc, &time); //make a copy of the current time so there aren't any unasigned values in the time struct
+
+    
     clearDisplay(dev);
 
     bool hoursSet = false;
@@ -885,6 +888,8 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
     int countingHours = 0;
     int countingMinutes = 0;
     printf("setting time...\n");
+    //display still colon in the middle 
+    displayChar(dev, POSCOL, POSY, ':'); 
     while(true){
         printf("hours...\n");
         k_msleep(250);
@@ -893,25 +898,27 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
             
             if(gpio_pin_get_dt(&button) != 0){
                 //count up
-                if(countingHours > 24){
+                if(countingHours > 22){
                     countingHours = 0;
                 }
                 else{
                     
                     countingHours++;
                 }
+                
                 k_msleep(200); //delay a bit
                 
             }
             else if(gpio_pin_get_dt(&button3) != 0){
                 //count down
-                if(countingHours < 0){
-                    countingHours = 24;
+                if(countingHours < 1){
+                    countingHours = 23;
                 }
                 else{
                     
                     countingHours--;
                 }
+                
                 k_msleep(200); //delay a bit
                 
             }
@@ -921,8 +928,23 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
                 hoursSet = true;
                 k_msleep(200);
             }
-            printf("hours current: %d\n", countingHours);
+            //printf("hours current: %d\n", countingHours);
+            if(countingHours > 9){
             
+                uint8_t bcd = bin2bcd(countingHours);
+                uint8_t mask = 0b00001111;
+    
+                uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30; 
+                uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  
+                
+                displayChar(dev, POS1, POSY, firstDigit);
+                displayChar(dev, POS2, POSY, secondDigit);
+     
+            }
+            else if(countingHours < 10){
+                clearChar(dev, POS1, POSY); //when counting down again
+                displayChar(dev, POS2, POSY, countingHours + '0');
+            }
         }
         k_msleep(250);
         printf("minutes...\n");
@@ -930,7 +952,7 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
             //then set minutes
             if(gpio_pin_get_dt(&button) != 0){
                 //count up
-                if(countingMinutes > 60){
+                if(countingMinutes > 58){
                     countingMinutes = 0;
                 }
                 else{
@@ -942,7 +964,7 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
             }
             else if(gpio_pin_get_dt(&button3) != 0){
                 //count down
-                if(countingMinutes < 0){
+                if(countingMinutes < 1){
                     countingMinutes = 59;
                 }
                 else{
@@ -956,15 +978,33 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
                 //when the middle button is pressed go to next
                 minutesSet = true;
             }
-            printf("minute current: %d\n", countingMinutes);
-
+            //printf("minute current: %d\n", countingMinutes);
+            if(countingMinutes > 9){
+            
+                uint8_t bcd = bin2bcd(countingMinutes);
+                uint8_t mask = 0b00001111;
+    
+                uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30; 
+                uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  
+                
+                displayChar(dev, POS3, POSY, firstDigit);
+                displayChar(dev, POS4, POSY, secondDigit);
+     
+            }
+            else if(countingMinutes < 10){
+                clearChar(dev, POS3, POSY); //when counting down again
+                displayChar(dev, POS4, POSY, countingMinutes + '0');
+            }
         }
+
+        
 
 
         
         if(hoursSet && minutesSet){
             break; //all set
         }
+        
         
     }
     printf("hours: %d\n", countingHours);
@@ -980,5 +1020,3 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
 
     return 0; 
 }
-
-
