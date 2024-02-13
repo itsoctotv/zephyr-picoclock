@@ -35,7 +35,7 @@ void updateDay(const struct device *rtc);
 
 void updateAutolight(const struct device *dev, const struct adc_dt_spec adc);
 
-int setTimeAndDate(const struct device *rtc);
+int setTimeAndDate(const struct device *dev, const struct device *rtc);
 
 struct display_capabilities caps;
 
@@ -66,21 +66,21 @@ int main() {
     
     struct rtc_time time;/* = {
         .tm_sec = 30,            //sec
-        .tm_min = 04,           //minute
-        .tm_hour = 13,          //hour
-        .tm_mday = 8,          //day of month
+        .tm_min = 31,           //minute
+        .tm_hour = 9,          //hour
+        .tm_mday = 13,          //day of month
         .tm_mon = 1,            //month
         .tm_year = 2024,        //year
-        .tm_wday = 4,           //weekday
-        .tm_yday = 39,          //yearday
+        .tm_wday = 2,           //weekday
+        .tm_yday = 44,          //yearday
         .tm_isdst = -1,         //daylight saving flag
         .tm_nsec = 1            //nanosec
     };
   
     
     rtc_set_time(rtc,&time);
-*/
 
+*/
 
 
     display_get_capabilities(dev, &caps);
@@ -151,8 +151,9 @@ dec: 1    2
         if(val2 != 0){
             //scrollText(dev,':');
 
+
             //set time and date (wip)
-            setTimeAndDate(rtc);
+            setTimeAndDate(dev,rtc);
         }
 
         
@@ -873,42 +874,106 @@ void scrollText(const struct device *dev, char c){
     clearDisplay(dev);
     
 }
-int setTimeAndDate(const struct device *rtc){
+int setTimeAndDate(const struct device *dev,const struct device *rtc){
 
-    //printf("Set time;\n");
     struct rtc_time time; 
-    int hourbuf = 0;
-    int minutebuf = 0;
-   
-    //printf("gimme hours (0-23): ");
-    int ret = scanf(" %d",&hourbuf);
-    printf("ret: %d\n",ret);
-    if(hourbuf < 24 && hourbuf > -1){
-        //set hours
-        time.tm_hour = hourbuf;
+
+    clearDisplay(dev);
+
+    bool hoursSet = false;
+    bool minutesSet = false;
+    int countingHours = 0;
+    int countingMinutes = 0;
+    printf("setting time...\n");
+    while(true){
+        printf("hours...\n");
+        k_msleep(250);
+        while(!hoursSet){ //if not set
+            //first set hours;
+            
+            if(gpio_pin_get_dt(&button) != 0){
+                //count up
+                if(countingHours > 24){
+                    countingHours = 0;
+                }
+                else{
+                    
+                    countingHours++;
+                }
+                k_msleep(200); //delay a bit
+                
+            }
+            else if(gpio_pin_get_dt(&button3) != 0){
+                //count down
+                if(countingHours < 0){
+                    countingHours = 24;
+                }
+                else{
+                    
+                    countingHours--;
+                }
+                k_msleep(200); //delay a bit
+                
+            }
+            
+            if(gpio_pin_get_dt(&button2) != 0){
+                //when the middle button is pressed go to next
+                hoursSet = true;
+                k_msleep(200);
+            }
+            printf("hours current: %d\n", countingHours);
+            
+        }
+        k_msleep(250);
+        printf("minutes...\n");
+        while(!minutesSet){
+            //then set minutes
+            if(gpio_pin_get_dt(&button) != 0){
+                //count up
+                if(countingMinutes > 60){
+                    countingMinutes = 0;
+                }
+                else{
+                    countingMinutes++;
+                    
+                }
+                k_msleep(200); //delay a bit
+                
+            }
+            else if(gpio_pin_get_dt(&button3) != 0){
+                //count down
+                if(countingMinutes < 0){
+                    countingMinutes = 59;
+                }
+                else{
+                    countingMinutes--;
+                    
+                }
+                k_msleep(200); //delay a bit
+                
+            }
+            if(gpio_pin_get_dt(&button2) != 0){
+                //when the middle button is pressed go to next
+                minutesSet = true;
+            }
+            printf("minute current: %d\n", countingMinutes);
+
+        }
+
+
+        
+        if(hoursSet && minutesSet){
+            break; //all set
+        }
         
     }
-    else{
-        //fail
-        printf("give me a valid number\nexiting...\n");
-        return -1;
-    }
+    printf("hours: %d\n", countingHours);
+    printf("minutes: %d\n", countingMinutes);
 
-    printf("gimme minutes (0-59): ");
-    scanf(" %d",&minutebuf);
-
-    if(minutebuf < 60 && minutebuf > -1){
-        //set minutes
-        time.tm_min = minutebuf;
-    }
-    else{
-        //fail
-        printf("give me a valid minute/number\nexiting...\n");
-        return -1;        
-    }
-
-
-    //rtc_set_time(rtc,&time); turn off for now so it doesnt accidentally set the time 
+    time.tm_hour = countingHours;
+    time.tm_min = countingMinutes;
+    
+    rtc_set_time(rtc,&time); 
     printf("time all set!\n");
     
     
