@@ -8,6 +8,7 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/drivers/adc.h>
 
+//TODO debounce buttons in setTime()
 
 #include "font.h"
 
@@ -26,7 +27,8 @@ int clearDisplay(const struct device *dev);
 void blinkChar(const struct device *dev, int x, int y, char c);
 void updateTemp(const struct device *dev);
 int switchToTemp(const struct device *display_device,const struct device *temp_device);
-void clearLEDs(const struct device *dev, int state);
+void setLED(const struct device *dev, int number, int state);
+void clearLEDs (const struct device *dev);
 int dimmDisplay(const struct device *dev, uint8_t brightness);
 
 void scrollText(const struct device *dev, char c);
@@ -35,7 +37,7 @@ void updateDay(const struct device *rtc);
 
 void updateAutolight(const struct device *dev, const struct adc_dt_spec adc);
 
-int setTimeAndDate(const struct device *dev, const struct device *rtc);
+int setTimeAndDay(const struct device *dev, const struct device *rtc);
 
 struct display_capabilities caps;
 
@@ -128,7 +130,6 @@ dec: 1    2
     printf("first digit ascii num: %x char: %c\n", firstDigit,(char)firstDigit);
     printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
     
-    bool isDimm = false;
     
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -153,25 +154,17 @@ dec: 1    2
 
 
             //set time and date (wip)
-            setTimeAndDate(dev,rtc);
+            setTimeAndDay(dev,rtc);
         }
 
         
         if(val3 != 0){
-            //toggle between dimm and bright
-            if(!isDimm){
-                printf("dimming display\n");    
-                dimmDisplay(dev, 1);
-                isDimm = true;
-                
-            }
-            else if(isDimm){
-                int ret = dimmDisplay(dev, 100);    
-                printf("back to normal: %d\n", ret);
-                isDimm = false;
-                
-            }
-            k_msleep(100);
+            setLED(dev, 1, 1);
+            setLED(dev, 2, 1);
+            setLED(dev, 3, 1);
+            setLED(dev, 4, 1);
+            k_msleep(1000);
+            clearLEDs(dev);
         }
         
         if(returnSwitchTemp == 0){
@@ -188,7 +181,6 @@ dec: 1    2
         minute = time.tm_min; 
         day = time.tm_wday;
 
-        
         
         if(hour < 10 && (hour != prevHr)){
             clearChar(dev,currentPosHr,POSY); //clear previous char
@@ -395,16 +387,12 @@ void updateTemp(const struct device *dev){
 int switchToTemp(const struct device *display_device, const struct device *temp_device){
 
     clearDisplay(display_device);
+    clearLEDs(display_device);
 
     int currentPosVal1 = POS1;
     int currentPosVal2 = POS3;
 
-    const struct gpio_dt_spec celsius = GPIO_DT_SPEC_GET(DT_ALIAS(led23),gpios);
-    const struct gpio_dt_spec fahrenheit = GPIO_DT_SPEC_GET(DT_ALIAS(led22),gpios);
-
-    gpio_pin_configure_dt(&celsius, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&fahrenheit, GPIO_OUTPUT);
-    gpio_pin_set_dt(&celsius, 1); //turn on °C LED
+    setLED(dev, 7, 1); //turn on C led
     bool isFahrenheit = false;
     
     while(true){
@@ -503,24 +491,24 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         int val = gpio_pin_get_dt(&button);
         if(val != 0){
             printf("exit\n");
-            gpio_pin_set_dt(&celsius, 0); //turn off LED when exiting
-            gpio_pin_set_dt(&fahrenheit, 0);
+            setLED(dev, 7, 0); //C //turn off LED when exiting
+            setLED(dev, 6, 0); //F
             break;
         }
         int val2 = gpio_pin_get_dt(&button2);
         if(val2 != 0){
             if(isFahrenheit){
                 printf("switching back to C\n");
-                gpio_pin_set_dt(&fahrenheit, 0);
-                gpio_pin_set_dt(&celsius, 1);
+                setLED(dev, 6, 0);
+                setLED(dev, 7, 1);
                 isFahrenheit = false;
             }
             else{
                 
                 printf("switching to fahrenheit\n");
-                gpio_pin_set_dt(&celsius, 0); //turn off C-LED
+                setLED(dev, 7, 0);
 
-                gpio_pin_set_dt(&fahrenheit, 1);
+                setLED(dev, 6, 1);
                 isFahrenheit = true;
             }
         }
@@ -532,110 +520,174 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
     
 }
 
+void clearLEDs(const struct device *dev){
+    setLED(dev,1,0);    
+    setLED(dev,2,0);    
+    setLED(dev,3,0); 
+    setLED(dev,4,0); 
+    setLED(dev,5,0); 
+    setLED(dev,6,0); 
+    setLED(dev,7,0); 
+    setLED(dev,8,0); 
+    setLED(dev,9,0); 
+    setLED(dev,10,0); 
+    setLED(dev,11,0); 
+    setLED(dev,12,0); 
+    setLED(dev,13,0); 
+    setLED(dev,14,0); 
+    setLED(dev,15,0); 
+    setLED(dev,16,0); 
+    setLED(dev,17,0); 
+    setLED(dev,18,0); 
+    setLED(dev,19,0); 
+}
 
-void clearLEDs(const struct device *dev, int state){
+void setLED(const struct device *dev, int number, int state){
 
+    switch(number){
+        
+        
+        case 1:
+        
+            struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1),gpios);
+            gpio_pin_configure_dt(&led1, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led1, state);
+            break;
+        case 2:
+            struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0),gpios);
+            gpio_pin_configure_dt(&led0, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led0, state);
+            break;
+        case 3:
+
+            struct gpio_dt_spec led16 = GPIO_DT_SPEC_GET(DT_ALIAS(led16),gpios);
+            struct gpio_dt_spec led17 = GPIO_DT_SPEC_GET(DT_ALIAS(led17),gpios);
+            gpio_pin_configure_dt(&led16, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led17, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led16, state);
+            gpio_pin_set_dt(&led17, state);
+            break;
+        case 4:
+            struct gpio_dt_spec led18 = GPIO_DT_SPEC_GET(DT_ALIAS(led18),gpios);
+            struct gpio_dt_spec led19 = GPIO_DT_SPEC_GET(DT_ALIAS(led19),gpios);
+            gpio_pin_configure_dt(&led18, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led19, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led18, state);
+            gpio_pin_set_dt(&led19, state);
+            break;
+        case 5:
+            struct gpio_dt_spec led20 = GPIO_DT_SPEC_GET(DT_ALIAS(led20),gpios);
+            struct gpio_dt_spec led21 = GPIO_DT_SPEC_GET(DT_ALIAS(led21),gpios);
+            gpio_pin_configure_dt(&led20, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led21, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led20, state);
+            gpio_pin_set_dt(&led21, state);
+            break;
+        case 6:
+            struct gpio_dt_spec led22 = GPIO_DT_SPEC_GET(DT_ALIAS(led22),gpios);
+            gpio_pin_configure_dt(&led22, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led22, state);
+            break;
+        case 7:
+            struct gpio_dt_spec led23 = GPIO_DT_SPEC_GET(DT_ALIAS(led23),gpios);
+            gpio_pin_configure_dt(&led23, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led23, state);
+            break;
+        case 8:
+            struct gpio_dt_spec led26 = GPIO_DT_SPEC_GET(DT_ALIAS(led26),gpios);
+            struct gpio_dt_spec led27 = GPIO_DT_SPEC_GET(DT_ALIAS(led27),gpios);
+            gpio_pin_configure_dt(&led26, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led27, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led26, state);   
+            gpio_pin_set_dt(&led27, state);   
+            break;
+        case 9:
+            struct gpio_dt_spec led28 = GPIO_DT_SPEC_GET(DT_ALIAS(led28),gpios);
+            struct gpio_dt_spec led29 = GPIO_DT_SPEC_GET(DT_ALIAS(led29),gpios);
+            gpio_pin_configure_dt(&led28, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led29, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led28, state);
+            gpio_pin_set_dt(&led29, state);
+            break;
+        case 10:
+            struct gpio_dt_spec led30 = GPIO_DT_SPEC_GET(DT_ALIAS(led30),gpios);
+            struct gpio_dt_spec led31 = GPIO_DT_SPEC_GET(DT_ALIAS(led31),gpios);
+            gpio_pin_configure_dt(&led30, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led31, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led30, state);
+            gpio_pin_set_dt(&led31, state);
+            break;
+        case 11:
+            struct gpio_dt_spec led24 = GPIO_DT_SPEC_GET(DT_ALIAS(led24),gpios);
+            gpio_pin_configure_dt(&led24, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led24, state);
+            break;
+        case 12:
+            struct gpio_dt_spec led25 = GPIO_DT_SPEC_GET(DT_ALIAS(led25),gpios);
+            gpio_pin_configure_dt(&led25, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led25, state);
+            break;
+                
     
-
-    const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0),gpios);
-    const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(DT_ALIAS(led1),gpios);
-    const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(DT_ALIAS(led2),gpios);
-    const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(DT_ALIAS(led3),gpios);
-    const struct gpio_dt_spec led4 = GPIO_DT_SPEC_GET(DT_ALIAS(led4),gpios);
-    const struct gpio_dt_spec led5 = GPIO_DT_SPEC_GET(DT_ALIAS(led5),gpios);
-    const struct gpio_dt_spec led6 = GPIO_DT_SPEC_GET(DT_ALIAS(led6),gpios);
-    const struct gpio_dt_spec led7 = GPIO_DT_SPEC_GET(DT_ALIAS(led7),gpios);
-    const struct gpio_dt_spec led8 = GPIO_DT_SPEC_GET(DT_ALIAS(led8),gpios);
-    const struct gpio_dt_spec led9 = GPIO_DT_SPEC_GET(DT_ALIAS(led9),gpios);
-    const struct gpio_dt_spec led10 = GPIO_DT_SPEC_GET(DT_ALIAS(led10),gpios);
-    const struct gpio_dt_spec led11 = GPIO_DT_SPEC_GET(DT_ALIAS(led11),gpios);
-    const struct gpio_dt_spec led12 = GPIO_DT_SPEC_GET(DT_ALIAS(led12),gpios);
-    const struct gpio_dt_spec led13 = GPIO_DT_SPEC_GET(DT_ALIAS(led13),gpios);
-    const struct gpio_dt_spec led14 = GPIO_DT_SPEC_GET(DT_ALIAS(led14),gpios);
-    const struct gpio_dt_spec led15 = GPIO_DT_SPEC_GET(DT_ALIAS(led15),gpios);
-    const struct gpio_dt_spec led16 = GPIO_DT_SPEC_GET(DT_ALIAS(led16),gpios);
-    const struct gpio_dt_spec led17 = GPIO_DT_SPEC_GET(DT_ALIAS(led17),gpios);
-    const struct gpio_dt_spec led18 = GPIO_DT_SPEC_GET(DT_ALIAS(led18),gpios);
-    const struct gpio_dt_spec led19 = GPIO_DT_SPEC_GET(DT_ALIAS(led19),gpios);
-    const struct gpio_dt_spec led20 = GPIO_DT_SPEC_GET(DT_ALIAS(led20),gpios);
-    const struct gpio_dt_spec led21 = GPIO_DT_SPEC_GET(DT_ALIAS(led21),gpios);
-    const struct gpio_dt_spec led22 = GPIO_DT_SPEC_GET(DT_ALIAS(led22),gpios);
-    const struct gpio_dt_spec led23 = GPIO_DT_SPEC_GET(DT_ALIAS(led23),gpios);
-    const struct gpio_dt_spec led24 = GPIO_DT_SPEC_GET(DT_ALIAS(led24),gpios);
-    const struct gpio_dt_spec led25 = GPIO_DT_SPEC_GET(DT_ALIAS(led25),gpios);
-    const struct gpio_dt_spec led26 = GPIO_DT_SPEC_GET(DT_ALIAS(led26),gpios);
-    const struct gpio_dt_spec led27 = GPIO_DT_SPEC_GET(DT_ALIAS(led27),gpios);
-    const struct gpio_dt_spec led28 = GPIO_DT_SPEC_GET(DT_ALIAS(led28),gpios);
-    const struct gpio_dt_spec led29 = GPIO_DT_SPEC_GET(DT_ALIAS(led29),gpios);
-    const struct gpio_dt_spec led30 = GPIO_DT_SPEC_GET(DT_ALIAS(led30),gpios);
-    const struct gpio_dt_spec led31 = GPIO_DT_SPEC_GET(DT_ALIAS(led31),gpios);
-
-    gpio_pin_configure_dt(&led0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led1, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led2, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led3, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led4, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led5, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led6, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led7, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led8, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led9, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led10, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led11, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led12, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led13, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led14, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led15, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led16, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led17, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led18, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led19, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led20, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led21, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led22, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led23, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led24, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led25, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led26, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led27, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led28, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&led29, GPIO_OUTPUT);    
-    gpio_pin_configure_dt(&led30, GPIO_OUTPUT);    
-    gpio_pin_configure_dt(&led31, GPIO_OUTPUT); 
-
-
-    gpio_pin_set_dt(&led0, state);
-    gpio_pin_set_dt(&led1, state);
-    gpio_pin_set_dt(&led2, state);
-    gpio_pin_set_dt(&led3, state);
-    gpio_pin_set_dt(&led4, state);
-    gpio_pin_set_dt(&led5, state);
-    gpio_pin_set_dt(&led6, state);
-    gpio_pin_set_dt(&led7, state);
-    gpio_pin_set_dt(&led8, state);
-    gpio_pin_set_dt(&led9, state);
-    gpio_pin_set_dt(&led10, state);
-    gpio_pin_set_dt(&led11, state);
-    gpio_pin_set_dt(&led12, state);
-    gpio_pin_set_dt(&led13, state);
-    gpio_pin_set_dt(&led14, state);
-    gpio_pin_set_dt(&led15, state);
-    gpio_pin_set_dt(&led16, state);
-    gpio_pin_set_dt(&led17, state);
-    gpio_pin_set_dt(&led18, state);
-    gpio_pin_set_dt(&led19, state);
-    gpio_pin_set_dt(&led20, state);
-    gpio_pin_set_dt(&led21, state);
-    gpio_pin_set_dt(&led22, state);
-    gpio_pin_set_dt(&led23, state);
-    gpio_pin_set_dt(&led24, state);
-    gpio_pin_set_dt(&led25, state);
-    gpio_pin_set_dt(&led26, state);
-    gpio_pin_set_dt(&led27, state);
-    gpio_pin_set_dt(&led28, state);
-    gpio_pin_set_dt(&led29, state);    
-    gpio_pin_set_dt(&led30, state);    
-    gpio_pin_set_dt(&led31, state);   
+            //weekdays
+        case 13:
+            struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(DT_ALIAS(led2),gpios);
+            struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(DT_ALIAS(led3),gpios);
+            gpio_pin_configure_dt(&led2, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led3, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led2, state);
+            gpio_pin_set_dt(&led3, state);
+            break;
+        case 14:
+            struct gpio_dt_spec led4 = GPIO_DT_SPEC_GET(DT_ALIAS(led4),gpios);
+            struct gpio_dt_spec led5 = GPIO_DT_SPEC_GET(DT_ALIAS(led5),gpios);
+            gpio_pin_configure_dt(&led4, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led5, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led4, state);
+            gpio_pin_set_dt(&led5, state);
+            break;
+        case 15:
+            struct gpio_dt_spec led6 = GPIO_DT_SPEC_GET(DT_ALIAS(led6),gpios);
+            struct gpio_dt_spec led7 = GPIO_DT_SPEC_GET(DT_ALIAS(led7),gpios);
+            gpio_pin_configure_dt(&led6, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led7, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led6, state);
+            gpio_pin_set_dt(&led7, state);
+            break;
+        case 16:
+            struct gpio_dt_spec led8 = GPIO_DT_SPEC_GET(DT_ALIAS(led8),gpios);
+            struct gpio_dt_spec led9 = GPIO_DT_SPEC_GET(DT_ALIAS(led9),gpios);
+            gpio_pin_configure_dt(&led8, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led9, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led8, state);
+            gpio_pin_set_dt(&led9, state);
+            break;
+        case 17:
+            struct gpio_dt_spec led10 = GPIO_DT_SPEC_GET(DT_ALIAS(led10),gpios);
+            struct gpio_dt_spec led11 = GPIO_DT_SPEC_GET(DT_ALIAS(led11),gpios);
+            gpio_pin_configure_dt(&led10, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led11, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led10, state);
+            gpio_pin_set_dt(&led11, state);
+            break;
+        case 18:
+            struct gpio_dt_spec led12 = GPIO_DT_SPEC_GET(DT_ALIAS(led12),gpios);
+            struct gpio_dt_spec led13 = GPIO_DT_SPEC_GET(DT_ALIAS(led13),gpios);
+            gpio_pin_configure_dt(&led12, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led13, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led12, state);
+            gpio_pin_set_dt(&led13, state);
+            break;
+        case 19:
+            struct gpio_dt_spec led14 = GPIO_DT_SPEC_GET(DT_ALIAS(led14),gpios);
+            struct gpio_dt_spec led15 = GPIO_DT_SPEC_GET(DT_ALIAS(led15),gpios);
+            gpio_pin_configure_dt(&led14, GPIO_OUTPUT);
+            gpio_pin_configure_dt(&led15, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led14, state);
+            gpio_pin_set_dt(&led15, state);
+            break;
+        
+    } 
     
 }
 
@@ -694,114 +746,50 @@ void updateAutolight(const struct device *dev, const struct adc_dt_spec adc){
 void updateDay(const struct device *rtc){
     struct rtc_time currTime;
 
-    //maybe there is a better way?
-    //monday leds
-    const struct gpio_dt_spec monday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led2),gpios);
-    const struct gpio_dt_spec monday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led3),gpios);
-
-    gpio_pin_configure_dt(&monday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&monday1, GPIO_OUTPUT);
-
-    //tuesday leds
-    const struct gpio_dt_spec tuesday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led4),gpios);
-    const struct gpio_dt_spec tuesday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led5),gpios);
-    
-    gpio_pin_configure_dt(&tuesday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&tuesday1, GPIO_OUTPUT);
-
-    //wednesday leds
-    const struct gpio_dt_spec wednesday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led6),gpios);
-    const struct gpio_dt_spec wednesday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led7),gpios);
-
-    gpio_pin_configure_dt(&wednesday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&wednesday1, GPIO_OUTPUT);
-
-    //thursday leds
-    const struct gpio_dt_spec thursday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led8),gpios);
-    const struct gpio_dt_spec thursday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led9),gpios);
-    
-    gpio_pin_configure_dt(&thursday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&thursday1, GPIO_OUTPUT);
-
-    //friday leds
-    const struct gpio_dt_spec friday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led10),gpios);
-    const struct gpio_dt_spec friday1  = GPIO_DT_SPEC_GET(DT_ALIAS(led11),gpios);
-
-    gpio_pin_configure_dt(&friday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&friday1, GPIO_OUTPUT);
-
-    //saturday leds
-    const struct gpio_dt_spec saturday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led12),gpios);
-    const struct gpio_dt_spec saturday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led13),gpios);
-    
-    gpio_pin_configure_dt(&saturday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&saturday1, GPIO_OUTPUT);
-
-    //sunday leds
-    const struct gpio_dt_spec sunday0 = GPIO_DT_SPEC_GET(DT_ALIAS(led14),gpios);
-    const struct gpio_dt_spec sunday1 = GPIO_DT_SPEC_GET(DT_ALIAS(led16),gpios);
-    
-    gpio_pin_configure_dt(&sunday0, GPIO_OUTPUT);
-    gpio_pin_configure_dt(&sunday1, GPIO_OUTPUT);
-
-
     //turn off all first (clears the previous day)
 
 
-    gpio_pin_set_dt(&sunday0, 0);
-    gpio_pin_set_dt(&sunday1, 0);
-    gpio_pin_set_dt(&monday0, 0);
-    gpio_pin_set_dt(&monday1, 0);
-    gpio_pin_set_dt(&tuesday0, 0);
-    gpio_pin_set_dt(&tuesday1, 0);
-    gpio_pin_set_dt(&wednesday0, 0);
-    gpio_pin_set_dt(&wednesday1, 0);
-    gpio_pin_set_dt(&thursday0, 0);
-    gpio_pin_set_dt(&thursday1, 0);
-    gpio_pin_set_dt(&friday0, 0);
-    gpio_pin_set_dt(&friday1, 0);
-    gpio_pin_set_dt(&saturday0, 0);
-    gpio_pin_set_dt(&saturday1, 0);
+    setLED(dev, 13, 0); //mon
+    setLED(dev, 14, 0); //tue
+    setLED(dev, 15, 0); //wed
+    setLED(dev, 16, 0); //thur
+    setLED(dev, 17, 0); //fri
+    setLED(dev, 18, 0); //sat
+    setLED(dev, 19, 0); //sun
+   
 
 
 
     rtc_get_time(rtc, &currTime);
     printf("currTime: %d\n",currTime.tm_wday);
     switch(currTime.tm_wday){
-        case 0:
-            printf("Sunday\n");
-            gpio_pin_set_dt(&sunday0, 1);
-            gpio_pin_set_dt(&sunday1, 1);
-            break;
         case 1:
-            printf("Monday\n");
-            gpio_pin_set_dt(&monday0, 1);
-            gpio_pin_set_dt(&monday1, 1);
+            printf("Sunday\n");
+            setLED(dev, 19, 1);
             break;
         case 2:
-            printf("Tuesday\n");
-            gpio_pin_set_dt(&tuesday0, 1);
-            gpio_pin_set_dt(&tuesday1, 1);
+            printf("Monday\n");
+            setLED(dev, 13, 1);
             break;
         case 3:
-            printf("Wednesday\n");
-            gpio_pin_set_dt(&wednesday0, 1);
-            gpio_pin_set_dt(&wednesday1, 1);
+            printf("Tuesday\n");
+            setLED(dev, 14, 1);
             break;
         case 4:
-            printf("Thursday\n");
-            gpio_pin_set_dt(&thursday0, 1);
-            gpio_pin_set_dt(&thursday1, 1);
+            printf("Wednesday\n");
+            setLED(dev, 15, 1);
             break;
         case 5:
-            printf("Friday\n");
-            gpio_pin_set_dt(&friday0, 1);
-            gpio_pin_set_dt(&friday1, 1);
+            printf("Thursday\n");
+            setLED(dev, 16, 1);
             break;
         case 6:
+            printf("Friday\n");
+            setLED(dev, 17, 1);
+            break;
+        case 7:
             printf("Saturday\n");
-            gpio_pin_set_dt(&saturday0, 1);
-            gpio_pin_set_dt(&saturday1, 1);
+            setLED(dev, 18, 1);
             break;
         default:
             printf("Failed to read Weekdays!\n");
@@ -874,7 +862,7 @@ void scrollText(const struct device *dev, char c){
     clearDisplay(dev);
     
 }
-int setTimeAndDate(const struct device *dev,const struct device *rtc){
+int setTimeAndDay(const struct device *dev,const struct device *rtc){
 
     struct rtc_time time; 
 
@@ -882,9 +870,13 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
 
     
     clearDisplay(dev);
+    clearLEDs(dev);
+
 
     bool hoursSet = false;
     bool minutesSet = false;
+    bool daySet = false;
+    int countingDays = 1; // start from 1 because there is no 0th day in the RTC
     int countingHours = 0;
     int countingMinutes = 0;
     printf("setting time...\n");
@@ -996,12 +988,137 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
                 displayChar(dev, POS4, POSY, countingMinutes + '0');
             }
         }
+        k_msleep(250);
+        printf("days...\n");
+        setLED(dev, 13, 1); //turn on monday led to signal the change to weekdays
+        while(!daySet){
+            /*
+            *   sunday = 1
+            *   monday = 2
+            *   tuesday = 3
+            *   wednesday = 4
+            *   thursday = 5
+            *   friday = 6
+            *   saturday = 7 
+            */
+            //set the day (top led bar)
+            if(gpio_pin_get_dt(&button) != 0){
+                //count up
+                if(countingDays > 6){
+                    
+                    countingDays = 1;
+                    
+                    
+                }
+                else{
+                    
+                    countingDays++;
+                    
+                    
+                }
+                k_msleep(200); //delay a bit
+                
+                
+                
+                //maybe come up with a better plan to this:
+                setLED(dev, 13, 0); 
+                setLED(dev, 14, 0);
+                setLED(dev, 15, 0);
+                setLED(dev, 16, 0);
+                setLED(dev, 17, 0);
+                setLED(dev, 18, 0);
+                setLED(dev, 19, 0);
+            
+                switch(countingDays){
+                //it just easier to do a switch statement 
 
+                    case 1: //sunday
+                        setLED(dev, 19, 1);
+                        break;
+                    case 2: //monday
+                        setLED(dev, 13, 1);
+                        break;
+                    case 3: //tuesday
+                        setLED(dev, 14, 1);
+                        break;
+                    case 4: //wednesday
+                        setLED(dev, 15, 1);
+                        break;          
+                    case 5: //thursday
+                        setLED(dev, 16, 1);
+                        break;
+                    case 6: //friday
+                        setLED(dev, 17, 1);
+                        break;
+                    case 7: //saturday
+                        setLED(dev, 18, 1);
+                        break;
+                }
+            }   
+            else if(gpio_pin_get_dt(&button3) != 0){
+                //count down
+                if(countingDays < 2){
+                    countingDays = 7;
+                }
+                else{
+                    
+                    countingDays--;
+                }
+                
+                k_msleep(200); //delay a bit
+
+                //maybe come up with a better plan to this:
+                setLED(dev, 13, 0); 
+                setLED(dev, 14, 0);
+                setLED(dev, 15, 0);
+                setLED(dev, 16, 0);
+                setLED(dev, 17, 0);
+                setLED(dev, 18, 0);
+                setLED(dev, 19, 0);
+                switch(countingDays){
+                //it just easier to do a switch statement 
+
+                    case 1: //sunday
+                        setLED(dev, 19, 1);
+                        break;
+                    case 2: //monday
+                        setLED(dev, 13, 1);
+                        break;
+                    case 3: //tuesday
+                        setLED(dev, 14, 1);
+                        break;
+                    case 4: //wednesday
+                        setLED(dev, 15, 1);
+                        break;          
+                    case 5: //thursday
+                        setLED(dev, 16, 1);
+                        break;
+                    case 6: //friday
+                        setLED(dev, 17, 1);
+                        break;
+                    case 7: //saturday
+                        setLED(dev, 18, 1);
+                        break;
+                }
+                
+                                
+                
+            }
+            
+            if(gpio_pin_get_dt(&button2) != 0){
+                //when the middle button is pressed go to next
+                daySet = true;
+                k_msleep(200);
+            }
+            //printf("days: %d\n", countingDays);
+
+            
+        }
         
 
 
         
-        if(hoursSet && minutesSet){
+        if(hoursSet && minutesSet && daySet){
             break; //all set
         }
         
@@ -1009,10 +1126,12 @@ int setTimeAndDate(const struct device *dev,const struct device *rtc){
     }
     printf("hours: %d\n", countingHours);
     printf("minutes: %d\n", countingMinutes);
+    printf("days: %d\n", countingDays);
 
     time.tm_hour = countingHours;
     time.tm_min = countingMinutes;
-    
+    time.tm_sec = 0; // set seconds to zero to reset the second counter once a new minute is set 
+    time.tm_wday = countingDays;
     rtc_set_time(rtc,&time); 
     printf("time all set!\n");
     
