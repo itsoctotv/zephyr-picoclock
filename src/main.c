@@ -131,7 +131,6 @@ dec: 1    2
     printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
 
     //turn on by default
-    setLED(dev, 10, 1);
     bool toggleAutolight = true; 
     
     while(true){
@@ -157,7 +156,9 @@ dec: 1    2
 
 
             //set time and date (wip)
+            
             setTimeAndDay(dev,rtc);
+
         }
 
         
@@ -176,6 +177,7 @@ dec: 1    2
         }
 
         if(toggleAutolight){
+            setLED(dev, 10, 1); //if you change to temp display or clockset display the led goes of because clearLEDs() is called in those functions this turns on the hole time while toggleAutolight is true
 
             updateAutolight(dev, adc_channel0);
             
