@@ -123,13 +123,16 @@ dec: 1    2
 */
     uint8_t mask = 0b00001111;
     
-    uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first 4bit
+    uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first ,4bit
     uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table
     
 
     printf("first digit ascii num: %x char: %c\n", firstDigit,(char)firstDigit);
     printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
-    
+
+    //turn on by default
+    setLED(dev, 10, 1);
+    bool toggleAutolight = true; 
     
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -159,13 +162,25 @@ dec: 1    2
 
         
         if(val3 != 0){
-            setLED(dev, 1, 1);
-            setLED(dev, 2, 1);
-            setLED(dev, 3, 1);
-            setLED(dev, 4, 1);
-            k_msleep(1000);
-            clearLEDs(dev);
+            if(toggleAutolight == true){
+                toggleAutolight = false;
+                setLED(dev, 10, 0);
+            }
+            else{
+                toggleAutolight = true;
+                setLED(dev, 10, 1);
+                
+            }
+            
+
         }
+
+        if(toggleAutolight){
+
+            updateAutolight(dev, adc_channel0);
+            
+        }
+        
         
         if(returnSwitchTemp == 0){
             //if returned from switchToTemp() update/set hours and minutes
@@ -251,7 +266,7 @@ dec: 1    2
         }
 
         blinkChar(dev, POSCOL, POSY, ':');
-        updateAutolight(dev, adc_channel0);
+        
         /* TEST FOR FLICKERING 
         //flickers everytime on rtc_get_time call
         while(true){
