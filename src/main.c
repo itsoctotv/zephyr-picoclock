@@ -8,8 +8,6 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/drivers/adc.h>
 
-//TODO debounce buttons in setTime()
-
 #include "font.h"
 
 //defines for main positions on the led matrix
@@ -31,8 +29,6 @@ void setLED(const struct device *dev, int number, int state);
 void clearLEDs (const struct device *dev);
 int dimmDisplay(const struct device *dev, uint8_t brightness);
 
-void scrollText(const struct device *dev, char c);
-void displayString(const struct device *dev, int x, int y, char* s);
 void updateDay(const struct device *rtc);
 
 void updateAutolight(const struct device *dev, const struct adc_dt_spec adc);
@@ -107,7 +103,6 @@ int main() {
     
     int prevHr,prevMin,prevDay = -1;
     int returnSwitchTemp = -1;
-
     uint8_t val = 12;
     uint8_t bcd = bin2bcd(val);
 
@@ -121,8 +116,8 @@ dec: 1    2
     0001 0010
 
 */
-    uint8_t mask = 0b00001111;
-    
+
+    uint8_t mask = 0b00001111;  
     uint8_t secondDigit = ((bcd >> 0) & mask) + 0x30;    //mask the first ,4bit
     uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;  //mask the second 4bit and add value to go to the 0-9 values in the ascii table
     
@@ -271,7 +266,8 @@ dec: 1    2
         
         /* TEST FOR FLICKERING 
         //flickers everytime on rtc_get_time call
-        while(true){
+        */
+        /*while(true){
             rtc_get_time(rtc, &time);
  
         }*/
@@ -813,72 +809,6 @@ void updateDay(const struct device *rtc){
             
     }
 }
-
-
-
-
-
-
-//[WIP]
-void displayString(const struct device *dev, int x, int y, char* s){
-    printf("inside displaystring thing\n");
-    k_msleep(500);
-    int pos = x;
-    clearDisplay(dev);
-    for(int i = 0; i < sizeof(s); i++){
-        displayChar(dev, pos+5, y, s[i]); //goto next position for next char
-        
-    }
-    while(true){
-        
-        int val = gpio_pin_get_dt(&button3);
-        if(val != 0){
-            printf("exit\n");
-            clearDisplay(dev);
-            return;
-        }
-        printf("waiting for input\n");
-        k_msleep(500);
-    }
-}
-
-void scrollText(const struct device *dev, char c){
-    clearDisplay(dev);
-
-    char singleLineBuff[1] = { };
-    memset(singleLineBuff, 0x00, sizeof(singleLineBuff));
-    struct display_buffer_descriptor char_buf_desc = {
-            .buf_size = sizeof(singleLineBuff),
-            .width =  1,
-            .height = 7,
-            .pitch =  1,
-        };
-    while(true){
-        for(int i = 0; i < 18; i++){
-            displayChar(dev, i+1, POSY, c);
-            display_write(dev, i, POSY, &char_buf_desc, singleLineBuff); //delete a single line
-            k_msleep(100);
-
-            
-            
-        }
-        for(int i = 19; i > 0; i--){
-            displayChar(dev, i-1, POSY, c);
-            display_write(dev, i+3, POSY, &char_buf_desc, singleLineBuff);
-            k_msleep(100);
-            
-        }
-
-        int val = gpio_pin_get_dt(&button2);
-        if(val != 0){
-            printf("exit\n");
-            break;
-        }
-    
-    }
-    clearDisplay(dev);
-    
-}
 int setTimeAndDay(const struct device *dev,const struct device *rtc){
 
     struct rtc_time time; 
@@ -893,9 +823,12 @@ int setTimeAndDay(const struct device *dev,const struct device *rtc){
     bool hoursSet = false;
     bool minutesSet = false;
     bool daySet = false;
+
+      
     int countingDays = 1; // start from 1 because there is no 0th day in the RTC
     int countingHours = 0;
     int countingMinutes = 0;
+    
     printf("setting time...\n");
     //display still colon in the middle 
     displayChar(dev, POSCOL, POSY, ':'); 
@@ -1131,7 +1064,7 @@ int setTimeAndDay(const struct device *dev,const struct device *rtc){
 
             
         }
-        
+            
 
 
         
