@@ -97,11 +97,17 @@ int main() {
     displayChar(dev, POS3, POSY,2);
     displayChar(dev, POS4, POSY,3);    
     
-    int hour,minute,day,currentPosHr, currentPosMin = 0;
+    int hour = 0;
+    int minute = 0;
+    int day = 0; 
+    int currentPosHr = 0;
+    int currentPosMin = 0;
     
     clearDisplay(dev);
     
-    int prevHr,prevMin,prevDay = -1;
+    int prevHr = -1;
+    int prevMin = -1;
+    int prevDay = -1;
     int returnSwitchTemp = -1;
     uint8_t val = 12;
     uint8_t bcd = bin2bcd(val);
