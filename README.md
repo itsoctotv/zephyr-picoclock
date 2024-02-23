@@ -36,3 +36,5 @@
    to the RTC and switch back to the clock display   
  * bottom-button to set values in negative direction   
 
+## Known bug(s):  
+ * sometimes when turning on the clock the second digit on the hour or minute side is noch displayed correctly to fix it switch to the temperature display and switch back this will reset the clock display  
