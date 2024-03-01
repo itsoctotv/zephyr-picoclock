@@ -1,4 +1,4 @@
-# Zephyr Pico Clock Sample   
+# Zephyr Pico Clock Sample [DEVEL BRANCH]   
 ---   
 [WIP] Sample on displaying characters and more on the [Waveshare Raspberry Pi Pico Clock](https://www.waveshare.com/wiki/Pico-Clock-Green) with [Zephyr](https://github.com/zephyrproject-rtos/zephyr) and the Display API. 
 
