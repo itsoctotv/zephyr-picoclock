@@ -58,7 +58,7 @@ const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
 
 //Flags
 bool f_autolight = true;
-
+bool f_twelveHourClock = false;
 
 int main() {
 
@@ -186,13 +186,13 @@ dec: 1    2
         
 
         if(f_autolight){
-            setLED(dev, 10, 1); //if you change to temp display or clockset display the led goes of because clearLEDs() is called in those functions this turns on the hole time while toggleAutolight is true
+            setLED(dev, 12, 1); //if you change to temp display or clockset display the led goes of because clearLEDs() is called in those functions this turns on the hole time while toggleAutolight is true
 
             updateAutolight(dev, adc_channel0);
             
         }
         else{
-            setLED(dev, 10, 0);
+            setLED(dev, 12, 0);
         }
         
         
@@ -212,10 +212,24 @@ dec: 1    2
 
         
         rtc_get_time(rtc, &time);
-        
-        hour = time.tm_hour;       
-        minute = time.tm_min; 
-        day = time.tm_wday;
+        if(f_twelveHourClock == true){
+            //activate am/pm func (just turn on/off leds for now)
+            setLED(dev, 8, 1);
+            setLED(dev, 9, 1);
+            
+            
+        }
+        else if(f_twelveHourClock == false){
+            
+            setLED(dev, 8, 0);
+            setLED(dev, 9, 0);
+        }
+        else{
+            hour = time.tm_hour;       
+            minute = time.tm_min; 
+            day = time.tm_wday;
+        }
+            
 
         
         if(hour < 10 && (hour != prevHr)){
@@ -528,7 +542,7 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
         int val = gpio_pin_get_dt(&button);
         if(val != 0){
             printf("exit\n");
-            setLED(dev, 7, 0); //C //turn off LED when exiting
+            setLED(dev, 7, 0); //C turn off LED when exiting
             setLED(dev, 6, 0); //F
             break;
         }
@@ -630,7 +644,18 @@ void setLED(const struct device *dev, int number, int state){
             gpio_pin_configure_dt(&led23, GPIO_OUTPUT);
             gpio_pin_set_dt(&led23, state);
             break;
+
         case 8:
+            struct gpio_dt_spec led24 = GPIO_DT_SPEC_GET(DT_ALIAS(led24),gpios);
+            gpio_pin_configure_dt(&led24, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led24, state);
+            break;
+        case 9:
+            struct gpio_dt_spec led25 = GPIO_DT_SPEC_GET(DT_ALIAS(led25),gpios);
+            gpio_pin_configure_dt(&led25, GPIO_OUTPUT);
+            gpio_pin_set_dt(&led25, state);
+            break;
+        case 10:
             struct gpio_dt_spec led26 = GPIO_DT_SPEC_GET(DT_ALIAS(led26),gpios);
             struct gpio_dt_spec led27 = GPIO_DT_SPEC_GET(DT_ALIAS(led27),gpios);
             gpio_pin_configure_dt(&led26, GPIO_OUTPUT);
@@ -638,7 +663,7 @@ void setLED(const struct device *dev, int number, int state){
             gpio_pin_set_dt(&led26, state);   
             gpio_pin_set_dt(&led27, state);   
             break;
-        case 9:
+        case 11:
             struct gpio_dt_spec led28 = GPIO_DT_SPEC_GET(DT_ALIAS(led28),gpios);
             struct gpio_dt_spec led29 = GPIO_DT_SPEC_GET(DT_ALIAS(led29),gpios);
             gpio_pin_configure_dt(&led28, GPIO_OUTPUT);
@@ -646,23 +671,13 @@ void setLED(const struct device *dev, int number, int state){
             gpio_pin_set_dt(&led28, state);
             gpio_pin_set_dt(&led29, state);
             break;
-        case 10:
+        case 12:
             struct gpio_dt_spec led30 = GPIO_DT_SPEC_GET(DT_ALIAS(led30),gpios);
             struct gpio_dt_spec led31 = GPIO_DT_SPEC_GET(DT_ALIAS(led31),gpios);
             gpio_pin_configure_dt(&led30, GPIO_OUTPUT);
             gpio_pin_configure_dt(&led31, GPIO_OUTPUT);
             gpio_pin_set_dt(&led30, state);
             gpio_pin_set_dt(&led31, state);
-            break;
-        case 11:
-            struct gpio_dt_spec led24 = GPIO_DT_SPEC_GET(DT_ALIAS(led24),gpios);
-            gpio_pin_configure_dt(&led24, GPIO_OUTPUT);
-            gpio_pin_set_dt(&led24, state);
-            break;
-        case 12:
-            struct gpio_dt_spec led25 = GPIO_DT_SPEC_GET(DT_ALIAS(led25),gpios);
-            gpio_pin_configure_dt(&led25, GPIO_OUTPUT);
-            gpio_pin_set_dt(&led25, state);
             break;
                 
     
@@ -1119,43 +1134,78 @@ int switchToMenu(const struct device *dev){
 
     //menu for toggling various options
 
-    
-    
-
     //autolight display test
 
-    displayChar(dev, POS1, POSY, 'A');
-    displayChar(dev, POS2, POSY, 'L');
-    displayChar(dev, POSCOL, POSY, ':');
-    k_msleep(250);
     while(true){
+        k_msleep(250); 
+        //the options name
+        displayChar(dev, POS1, POSY, 'A');
+        displayChar(dev, POS2, POSY, 'L');
+        displayChar(dev, POSCOL, POSY, ':');
+        while(true){
+            
+            if(f_autolight == true){
+                displayChar(dev, POS3, POSY, 'O');
+                displayChar(dev, POS4, POSY, 'N');
+                
+            }
+            else if(f_autolight == false){
+                displayChar(dev, POS3, POSY, 'O');
+                displayChar(dev, POS4, POSY, 'F');
+            }
+
+            int toggleOption = gpio_pin_get_dt(&button2);
+
+            if(toggleOption != 0){
+                
+                f_autolight = !f_autolight; //toggle the flag
+                k_msleep(250);
+                clearChar(dev, POS3, POSY);
+                clearChar(dev, POS4, POSY);
+            }
+            int nextOption = gpio_pin_get_dt(&button);
+            if(nextOption != 0){
+                printf("goto next opion\n");
+                break;
+            }
+        }
+        k_msleep(250);
+        clearDisplay(dev);
+        displayChar(dev, POS1, POSY, '1');
+        displayChar(dev, POS2, POSY, '2');
+        displayChar(dev, POSCOL, POSY, ':');
+        while(true){
+
+            if(f_twelveHourClock == true){
+                displayChar(dev, POS3, POSY, 'O');
+                displayChar(dev, POS4, POSY, 'N');
+                
+            }
+            else if(f_twelveHourClock == false){
+                displayChar(dev, POS3, POSY, 'O');
+                displayChar(dev, POS4, POSY, 'F');
+                
+            }
+            int toggleOption = gpio_pin_get_dt(&button2);
+            
+            if(toggleOption != 0){
+                
+                f_twelveHourClock = !f_twelveHourClock; //toggle the flag
+                k_msleep(250);
+                clearChar(dev, POS3, POSY);
+                clearChar(dev, POS4, POSY);
+            }
+            int nextOption = gpio_pin_get_dt(&button);
+            if(nextOption != 0){
+                printf("goto next opion\n");
+                break;
+            }
+        }
+
+        printf("going back to clock\n");          
+        break;
         
-        if(f_autolight == true){
-            displayChar(dev, POS3, POSY, 'O');
-            displayChar(dev, POS4, POSY, 'N');
-            
-        }
-        else if(f_autolight == false){
-            displayChar(dev, POS3, POSY, 'O');
-            displayChar(dev, POS4, POSY, 'F');
-        }
-
-        int toggleOption = gpio_pin_get_dt(&button2);
-
-        if(toggleOption != 0){
-            
-            f_autolight = !f_autolight; //toggle the flag
-            k_msleep(250);
-            clearChar(dev, POS3, POSY);
-            clearChar(dev, POS4, POSY);
-        }
-
-        int exitButton = gpio_pin_get_dt(&button3);
-        if(exitButton != 0){
-            printf("breaking here\n");
-            break;
-        }
-        printf("current state autolight flag: %d\n", (uint8_t)f_autolight);
+        
     }
     return 0;
     
