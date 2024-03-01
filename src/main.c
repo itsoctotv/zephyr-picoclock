@@ -224,11 +224,11 @@ dec: 1    2
             setLED(dev, 8, 0);
             setLED(dev, 9, 0);
         }
-        else{
-            hour = time.tm_hour;       
-            minute = time.tm_min; 
-            day = time.tm_wday;
-        }
+        
+        hour = time.tm_hour;       
+        minute = time.tm_min; 
+        day = time.tm_wday;
+        
             
 
         
