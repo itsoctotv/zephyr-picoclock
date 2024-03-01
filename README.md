@@ -24,7 +24,7 @@
 ### Clock display  
  * up-button to switch to temperature display  
  * middle-button to set the time and day  
- * down-button toggle autolight
+ * down-button switch to the configurations menu
 ### Temperature display  
  * up-button to switch back to the clock display  
  * middle-button to toggle between Celsius and Fahrenheit  
@@ -35,7 +35,10 @@
    if hours, minutes and day is set press again to write changes   
    to the RTC and switch back to the clock display   
  * bottom-button to set values in negative direction   
-
+### Configurations Menu   
+ * up-button cycle through options (wip)   
+ * middle-button toggle selected option   
+ * bottom-button confirm changes and exit to clock display   
 ## Known bug(s):  
  * when there is a 0 somewhere and when turning on the clock the second digit on the hour or minute side is not displayed correctly to fix it switch to the temperature display and switch back this will reset the clock display  
 
