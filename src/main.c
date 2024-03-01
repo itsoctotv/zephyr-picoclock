@@ -56,6 +56,10 @@ const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
 const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
 
 
+//Flags
+bool f_autolight = true;
+
+
 int main() {
 
 
@@ -110,6 +114,7 @@ int main() {
     int prevMin = -1;
     int prevDay = -1;
     int returnSwitchTemp = -1;
+    int returnSwitchMenu = -1;
     uint8_t val = 12;
     uint8_t bcd = bin2bcd(val);
 
@@ -133,7 +138,7 @@ dec: 1    2
     printf("second digit ascii num: %x char: %c\n", secondDigit,(char)secondDigit);
 
     //turn on by default
-    bool toggleAutolight = true; 
+    //bool toggleAutolight = true; 
     
     while(true){
         //printf("H: %d  M: %d  S: %d  \n",time.tm_hour, time.tm_min, time.tm_sec);
@@ -174,16 +179,20 @@ dec: 1    2
                 setLED(dev, 10, 1);
                 
             }*/
-            switchToMenu(dev);
+            returnSwitchMenu = switchToMenu(dev);
             
 
         }
+        
 
-        if(toggleAutolight){
+        if(f_autolight){
             setLED(dev, 10, 1); //if you change to temp display or clockset display the led goes of because clearLEDs() is called in those functions this turns on the hole time while toggleAutolight is true
 
             updateAutolight(dev, adc_channel0);
             
+        }
+        else{
+            setLED(dev, 10, 0);
         }
         
         
@@ -194,6 +203,13 @@ dec: 1    2
             prevDay = -1;
             returnSwitchTemp = -1; //set it to -1 or any value to not trigger this statement again
         }
+        if(returnSwitchMenu == 0){
+            prevHr = -1;
+            prevMin = -1;
+            prevDay = -1;
+            returnSwitchMenu = -1;
+        }
+
         
         rtc_get_time(rtc, &time);
         
@@ -1099,18 +1115,19 @@ int setTimeAndDay(const struct device *dev,const struct device *rtc){
 }
 
 int switchToMenu(const struct device *dev){
-
     clearDisplay(dev);
 
     //menu for toggling various options
 
-    bool f_autolight = true;
+    
+    
 
     //autolight display test
 
     displayChar(dev, POS1, POSY, 'A');
     displayChar(dev, POS2, POSY, 'L');
     displayChar(dev, POSCOL, POSY, ':');
+    k_msleep(250);
     while(true){
         
         if(f_autolight == true){
@@ -1123,16 +1140,24 @@ int switchToMenu(const struct device *dev){
             displayChar(dev, POS4, POSY, 'F');
         }
 
-        int val2 = gpio_pin_get_dt(&button2);
+        int toggleOption = gpio_pin_get_dt(&button2);
 
-        if(val2 != 0){
+        if(toggleOption != 0){
             
             f_autolight = !f_autolight; //toggle the flag
             k_msleep(250);
             clearChar(dev, POS3, POSY);
             clearChar(dev, POS4, POSY);
         }
-        
+
+        int exitButton = gpio_pin_get_dt(&button3);
+        if(exitButton != 0){
+            printf("breaking here\n");
+            break;
+        }
+        printf("current state autolight flag: %d\n", (uint8_t)f_autolight);
     }
+    return 0;
+    
         
 }
