@@ -753,10 +753,10 @@ void updateAutolight(const struct device *dev, const struct adc_dt_spec adc){
     //printf("current mV: %d\n",val_mv);
 
     //if over 1500mV is reached dimm the display
-    if(val_mv < 1500){ 
+    if(val_mv < 1700){ //bright
         dimmDisplay(dev, 100);
     }
-    else if(val_mv > 1500){
+    else if(val_mv > 1700){ //dark
         dimmDisplay(dev, 1);
     }
     
