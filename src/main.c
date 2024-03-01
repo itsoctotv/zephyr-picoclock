@@ -18,6 +18,7 @@
 #define POS4       18
 #define POSY        0
 
+int switchToMenu(const struct device *dev);
 
 int displayChar(const struct device *dev, int x, int y, char c);
 int clearChar(const struct device *dev, int index, int y);
@@ -156,7 +157,7 @@ dec: 1    2
             //scrollText(dev,':');
 
 
-            //set time and date (wip)
+            //set time and date
             
             setTimeAndDay(dev,rtc);
 
@@ -164,7 +165,7 @@ dec: 1    2
 
         
         if(val3 != 0){
-            if(toggleAutolight == true){
+            /*if(toggleAutolight == true){
                 toggleAutolight = false;
                 setLED(dev, 10, 0);
             }
@@ -172,7 +173,8 @@ dec: 1    2
                 toggleAutolight = true;
                 setLED(dev, 10, 1);
                 
-            }
+            }*/
+            switchToMenu(dev);
             
 
         }
@@ -1094,4 +1096,43 @@ int setTimeAndDay(const struct device *dev,const struct device *rtc){
     
 
     return 0; 
+}
+
+int switchToMenu(const struct device *dev){
+
+    clearDisplay(dev);
+
+    //menu for toggling various options
+
+    bool f_autolight = true;
+
+    //autolight display test
+
+    displayChar(dev, POS1, POSY, 'A');
+    displayChar(dev, POS2, POSY, 'L');
+    displayChar(dev, POSCOL, POSY, ':');
+    while(true){
+        
+        if(f_autolight == true){
+            displayChar(dev, POS3, POSY, 'O');
+            displayChar(dev, POS4, POSY, 'N');
+            
+        }
+        else if(f_autolight == false){
+            displayChar(dev, POS3, POSY, 'O');
+            displayChar(dev, POS4, POSY, 'F');
+        }
+
+        int val2 = gpio_pin_get_dt(&button2);
+
+        if(val2 != 0){
+            
+            f_autolight = !f_autolight; //toggle the flag
+            k_msleep(250);
+            clearChar(dev, POS3, POSY);
+            clearChar(dev, POS4, POSY);
+        }
+        
+    }
+        
 }
