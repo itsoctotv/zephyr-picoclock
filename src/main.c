@@ -217,32 +217,32 @@ dec: 1    2
             setLED(dev, 9, 1);
             //maybe
             // https://stackoverflow.com/questions/63976824/how-to-convert-hour-number-from-24h-to-12h-format-without-any-conditional-operat
-            if(time.tm_hour < 12){
+            if(time.tm_hour < 12){ //from 0-12 in 24h format
                 //in the AMs
                 setLED(dev, 8, 1); //turn on AM led
                 setLED(dev, 9, 0); //turn off PM led
 
-                int hourFormatted = (time.tm_hour % 12);
+                int hourFormatted = (time.tm_hour % 12); // limit to 12
                 if(hourFormatted == 0){
-                    hourFormatted = 12;
+                    hourFormatted = 12; //take care of 0s in 24h format, they dont exist in 12h format
                 }
-                printf("hour in 12h format: %d\nnormal hour: %d\n", hourFormatted, time.tm_hour);
+                //printf("hour in 12h format: %d\nnormal hour: %d\n", hourFormatted, time.tm_hour);
                 hour = hourFormatted;       
                 
 
                 
             }
-            if(time.tm_hour > 11){
+            if(time.tm_hour > 11){ //from 12-24 in 24h format 
                 //in the PMs
                 
                 setLED(dev, 8, 0); //turn off AM led
                 setLED(dev, 9, 1); //turn on PM led
-                int hourFormatted = (time.tm_hour % 12);
-                if(hourFormatted == 0){
+                int hourFormatted = (time.tm_hour % 12); // limit to 12
+                if(hourFormatted == 0){ //take care of 0s in 24h format, they dont exist in 12h format
                     hourFormatted = 12;
                 }
-                printf("hour in 12h format: %d\nnormal hour: %d\n", hourFormatted, time.tm_hour);
-                hour = hourFormatted;       
+                //printf("hour in 12h format: %d\nnormal hour: %d\n", hourFormatted, time.tm_hour);
+                hour = hourFormatted; //set the main hour variable to the formatted 12h version
                 
             }
             
@@ -251,7 +251,7 @@ dec: 1    2
             
             setLED(dev, 8, 0);
             setLED(dev, 9, 0);
-            hour = time.tm_hour;       
+            hour = time.tm_hour; //dont set main hour variable to the formatted 12h version, keep it as is
         }
         
         minute = time.tm_min; 
