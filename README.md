@@ -11,14 +11,14 @@
  * set time and day directly from the clock  
  * displaying chars via bitmap fonts  
  * toggle automatic brightness  
+ * 12h clock (AM/PM)  
+ * come up with some sort of easy-to-navigate menu for all those things   
 
 ## Still todo (maybe):  
- * 12h clock (AM/PM)  
  * add option for a stopwatch  
  * add option to set alarms on time and day basis (not supported by the driver yet)  
  * add option to start a timer in minutes and hour basis (requires alarms, not supported by driver yet)  
  * add toggle option to display the date    
- * come up with some sort of easy-to-navigate menu for all those things   
 
 ## Controls:    
 ### Clock display  
