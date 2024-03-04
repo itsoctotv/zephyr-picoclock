@@ -12,7 +12,7 @@
  * displaying chars via bitmap fonts  
  * toggle automatic brightness  
  * 12h clock (AM/PM)  
- * come up with some sort of easy-to-navigate menu for all those things   
+ * easy-to-navigate menu   
 
 ## Still todo (maybe):  
  * add option for a stopwatch  
