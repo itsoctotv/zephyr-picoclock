@@ -29,7 +29,6 @@ int switchToTemp(const struct device *display_device,const struct device *temp_d
 void setLED(const struct device *dev, int number, int state);
 void clearLEDs (const struct device *dev);
 int dimmDisplay(const struct device *dev, uint8_t brightness);
-
 void updateDay(const struct device *rtc);
 
 void updateAutolight(const struct device *dev, const struct adc_dt_spec adc);
@@ -59,6 +58,7 @@ const struct device *devtemp = DEVICE_DT_GET(DT_NODELABEL(clock_dts));
 //Flags
 bool f_autolight = true;
 bool f_twelveHourClock = false;
+
 
 int main() {
 
@@ -213,19 +213,47 @@ dec: 1    2
         
         rtc_get_time(rtc, &time);
         if(f_twelveHourClock == true){
-            //activate am/pm func (just turn on/off leds for now)
-            setLED(dev, 8, 1);
+            //activate am/pm func (just turn on/off leds for )
             setLED(dev, 9, 1);
-            
+            //maybe
+            // https://stackoverflow.com/questions/63976824/how-to-convert-hour-number-from-24h-to-12h-format-without-any-conditional-operat
+            if(time.tm_hour < 12){
+                //in the AMs
+                setLED(dev, 8, 1); //turn on AM led
+                setLED(dev, 9, 0); //turn off PM led
+
+                int hourFormatted = (time.tm_hour % 12);
+                if(hourFormatted == 0){
+                    hourFormatted = 12;
+                }
+                printf("hour in 12h format: %d\nnormal hour: %d\n", hourFormatted, time.tm_hour);
+                hour = hourFormatted;       
+                
+
+                
+            }
+            if(time.tm_hour > 11){
+                //in the PMs
+                
+                setLED(dev, 8, 0); //turn off AM led
+                setLED(dev, 9, 1); //turn on PM led
+                int hourFormatted = (time.tm_hour % 12);
+                if(hourFormatted == 0){
+                    hourFormatted = 12;
+                }
+                printf("hour in 12h format: %d\nnormal hour: %d\n", hourFormatted, time.tm_hour);
+                hour = hourFormatted;       
+                
+            }
             
         }
         else if(f_twelveHourClock == false){
             
             setLED(dev, 8, 0);
             setLED(dev, 9, 0);
+            hour = time.tm_hour;       
         }
         
-        hour = time.tm_hour;       
         minute = time.tm_min; 
         day = time.tm_wday;
         
