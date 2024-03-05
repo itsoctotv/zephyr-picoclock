@@ -12,7 +12,7 @@
  * displaying chars via bitmap fonts  
  * toggle automatic brightness  
  * 12h clock (AM/PM)  
- * come up with some sort of easy-to-navigate menu for all those things   
+ * easy-to-navigate menu   
 
 ## Still todo (maybe):  
  * add option for a stopwatch  
@@ -40,6 +40,4 @@
  * middle-button toggle selected option   
  * bottom-button not used   
 ## Known bug(s):  
- * when there is a 0 somewhere and when turning on the clock the second digit on the hour or minute side is not displayed correctly to fix it switch to the temperature display and switch back this will reset the clock display  
-
 
