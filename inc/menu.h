@@ -12,4 +12,3 @@ extern bool f_autolight;
 extern bool f_twelveHourClock;
 
 #endif
- 

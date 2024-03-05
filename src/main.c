@@ -88,8 +88,8 @@ int main() {
     int hour = 0;
     int minute = 0;
     int day = 0; 
-    int currentPosHr = 0;
-    int currentPosMin = 0;
+    int currentPosHr = POS1;
+    int currentPosMin = POS3;
     
     clearDisplay(dev);
     
@@ -98,6 +98,7 @@ int main() {
     int prevDay = -1;
     int returnSwitchTemp = -1;
     int returnSwitchMenu = -1;
+    int returnTimeAndDay = -1;
     uint8_t val = 12;
     uint8_t bcd = bin2bcd(val);
 
@@ -147,7 +148,7 @@ dec: 1    2
 
             //set time and date
             
-            setTimeAndDay(dev,rtc);
+            returnTimeAndDay = setTimeAndDay(dev,rtc);
 
         }
 
@@ -185,12 +186,23 @@ dec: 1    2
             prevMin = -1; //set to default to simulate "restart"
             prevDay = -1;
             returnSwitchTemp = -1; //set it to -1 or any value to not trigger this statement again
+            printf("display reset!\n");
         }
         if(returnSwitchMenu == 0){
             prevHr = -1;
             prevMin = -1;
             prevDay = -1;
             returnSwitchMenu = -1;
+            printf("display reset!\n");
+
+        }
+        if(returnTimeAndDay == 0){
+            prevHr = -1;
+            prevMin = -1;
+            prevDay = -1;
+            returnTimeAndDay = -1;
+            printf("display reset!\n");
+
         }
 
         
@@ -316,11 +328,12 @@ dec: 1    2
         /* TEST FOR FLICKERING 
         //flickers everytime on rtc_get_time call
         */
+        
         /*while(true){
             rtc_get_time(rtc, &time);
  
         }*/
-    
+
     }    
     
 
