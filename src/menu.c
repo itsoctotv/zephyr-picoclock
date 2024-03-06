@@ -3,19 +3,24 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/rtc.h>
 #include "menu.h"
 #include "led.h"
 #include "display.h"
 #include "def.h"
 
+
 static struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
 static struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 static struct gpio_dt_spec button3 = GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios);
 static const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+static const struct device *rtc = DEVICE_DT_GET(DT_NODELABEL(clock_rtc));
+
 
 //Flags
 bool f_autolight = true;
 bool f_twelveHourClock = false;
+
 
 
 int switchToTemp(const struct device *display_device, const struct device *temp_device){
@@ -150,12 +155,46 @@ int switchToTemp(const struct device *display_device, const struct device *temp_
                 isFahrenheit = true;
             }
         }
+        int val3 = gpio_pin_get_dt(&button3);
+        if(val3 != 0){
+            switchToDate(dev, rtc);
+            setLED(dev, 7, 10);
+        }
         
     }
     clearDisplay(display_device);
     return 0;
     
     
+}
+int switchToDate(const struct device *dev, const struct device *rtc){
+    clearDisplay(dev);
+    clearLEDs(dev);
+    gpio_pin_configure_dt(&button, GPIO_INPUT);
+    gpio_pin_configure_dt(&button2, GPIO_INPUT);
+    gpio_pin_configure_dt(&button3, GPIO_INPUT);
+
+    struct rtc_time time;
+
+    rtc_get_time(rtc, &time);
+    while(true){
+        k_msleep(250);
+        
+        displayChar(dev,POS1,POSY,'0');
+        displayChar(dev,POS2,POSY,time.tm_mday + '0');
+        displayChar(dev,POS3,POSY,'0');
+        displayChar(dev,POS4,POSY,time.tm_mon + '0');
+        displayChar(dev,POSCOL,POSY,'.');
+        int val = gpio_pin_get_dt(&button3);
+
+        if(val != 0){
+            break;
+        }
+            
+                
+    }
+    clearDisplay(dev);
+    return 0;
 }
 
 int switchToMenu(const struct device *dev){
