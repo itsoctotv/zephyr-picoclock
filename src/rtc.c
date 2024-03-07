@@ -86,10 +86,15 @@ int setTimeAndDay(const struct device *dev,const struct device *rtc){
     bool minutesSet = false;
     bool daySet = false;
 
+    bool mdaySet = false;
+    bool monthSet = false;
       
     int countingDays = 1; // start from 1 because there is no 0th day in the RTC
     int countingHours = 0;
     int countingMinutes = 0;
+    
+    int countingMDays = 0;
+    int countingMonths = 0;
     
     printf("setting time...\n");
     //display still colon in the middle 
@@ -325,6 +330,9 @@ int setTimeAndDay(const struct device *dev,const struct device *rtc){
             //printf("days: %d\n", countingDays);
 
             
+        }
+        while(!mdaySet){
+            mdaySet = true;
         }
             
 

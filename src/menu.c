@@ -190,6 +190,28 @@ int switchToDate(const struct device *dev, const struct device *rtc){
         if(val != 0){
             break;
         }
+        int val2 = gpio_pin_get_dt(&button2);
+        if(val2 != 0){
+            //display the year
+            k_msleep(250);
+            clearDisplay(dev);
+            int year = 1234;
+            int bcd = bin2bcd(year);
+            uint16_t mask = 0b0000000000001111;
+            uint8_t fourthDigit = ((bcd >> 0) & mask) + 0x30;
+            uint8_t thirdDigit = ((bcd >> 4) & mask) + 0x30;
+            uint8_t secondDigit = ((bcd >> 4) & mask) + 0x30;
+            uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;
+
+            displayChar(dev, POS1, POSY, fourthDigit + '0');
+            displayChar(dev, POS2, POSY, thirdDigit + '0');
+            displayChar(dev, POS3, POSY, secondDigit + '0');
+            displayChar(dev, POS4, POSY, firstDigit + '0');
+            printf("first: %x char: %c\n", firstDigit, (char)firstDigit);
+            printf("second: %x char: %c\n", secondDigit, (char)secondDigit);
+            printf("third: %x char: %c\n", thirdDigit, (char)thirdDigit);
+            printf("first: %x char: %c\n", fourthDigit, (char)fourthDigit);
+        }
             
                 
     }
