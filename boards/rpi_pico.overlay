@@ -8,6 +8,9 @@
 	zephyr,user {
 		io-channels = <&adc 0>;
 	};
+	chosen {
+			zephyr,console = &snippet_cdc_acm_console_uart;
+		};
 	        
 		
 };
@@ -22,5 +25,18 @@
 		zephyr,reference = "ADC_REF_INTERNAL";
 		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
 		zephyr,resolution = <12>;
+	};
+};
+
+/*
+ * Copyright (c) 2023 TiaC Systems
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+
+
+&zephyr_udc0 {
+	snippet_cdc_acm_console_uart: snippet_cdc_acm_console_uart {
+		compatible = "zephyr,cdc-acm-uart";
 	};
 };
