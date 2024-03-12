@@ -182,9 +182,9 @@ int switchToDate(const struct device *dev, const struct device *rtc){
         
         displayChar(dev,POS1,POSY,'0');
         displayChar(dev,POS2,POSY,time.tm_mday + '0');
+        displayChar(dev,POSCOL,POSY,'.');
         displayChar(dev,POS3,POSY,'0');
         displayChar(dev,POS4,POSY,time.tm_mon + '0');
-        displayChar(dev,POSCOL,POSY,'.');
         int val = gpio_pin_get_dt(&button3);
 
         if(val != 0){
@@ -195,22 +195,45 @@ int switchToDate(const struct device *dev, const struct device *rtc){
             //display the year
             k_msleep(250);
             clearDisplay(dev);
-            int year = 1234;
-            int bcd = bin2bcd(year);
-            uint16_t mask = 0b0000000000001111;
-            uint8_t fourthDigit = ((bcd >> 0) & mask) + 0x30;
-            uint8_t thirdDigit = ((bcd >> 4) & mask) + 0x30;
-            uint8_t secondDigit = ((bcd >> 4) & mask) + 0x30;
-            uint8_t firstDigit = ((bcd >> 4) & mask) + 0x30;
+            //because zephyr bcd function only returns an 8bit value and the year is a 4digit(16bit) value split it into two 8bit vals and treat them seperate
+                        
+            int year1 = time.tm_year / 100;
+            int year2 = time.tm_year % 100;
+            printf("year rtc: %d\n", time.tm_year);
+            printf("year 1: %d\nyear 2: %d\n", year1, year2);
+            
+            uint8_t bcdFirstHalf = bin2bcd(year1);
+            uint8_t bcdSecondHalf = bin2bcd(year2);
+            uint8_t mask = 0b00001111;
+            
+            uint8_t firstDigit = ((bcdFirstHalf >> 4) & mask) + 0x30;
+            
+            uint8_t secondDigit = ((bcdFirstHalf >> 0) & mask) + 0x30;
+            
+            uint8_t thirdDigit = ((bcdSecondHalf >> 4) & mask) + 0x30;
+            
+            uint8_t fourthDigit = ((bcdSecondHalf >> 0) & mask) + 0x30;
 
-            displayChar(dev, POS1, POSY, fourthDigit + '0');
-            displayChar(dev, POS2, POSY, thirdDigit + '0');
-            displayChar(dev, POS3, POSY, secondDigit + '0');
-            displayChar(dev, POS4, POSY, firstDigit + '0');
-            printf("first: %x char: %c\n", firstDigit, (char)firstDigit);
-            printf("second: %x char: %c\n", secondDigit, (char)secondDigit);
-            printf("third: %x char: %c\n", thirdDigit, (char)thirdDigit);
-            printf("first: %x char: %c\n", fourthDigit, (char)fourthDigit);
+            while(true){
+                
+                k_msleep(100);
+                displayChar(dev, POS1, POSY, firstDigit);
+                displayChar(dev, POS2, POSY, secondDigit);
+                displayChar(dev, POSCOL + 1, POSY, thirdDigit); // a bit of char offset so it doesnt look squished
+                displayChar(dev, POS3 + 2, POSY, fourthDigit);
+               /* printf("first: %d, %x char: %c\n", firstDigit,firstDigit, (char)firstDigit);
+                printf("second: %d, %x char: %c\n", secondDigit,secondDigit, (char)secondDigit);
+                printf("third: %d, %x char: %c\n", thirdDigit,thirdDigit, (char)thirdDigit);
+                printf("fourth: %d, %x char: %c\n",fourthDigit, fourthDigit, (char)fourthDigit);
+*/              
+                int val2 = gpio_pin_get_dt(&button2);
+                
+                if(val2 != 0){
+                    clearDisplay(dev);
+                    break;
+                    
+                }
+            }
         }
             
                 
