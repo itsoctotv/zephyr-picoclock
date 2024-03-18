@@ -50,17 +50,15 @@ int main() {
     gpio_pin_configure_dt(&button2, GPIO_INPUT);
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
     
-    struct rtc_time time;/*= {
+    struct rtc_time time;/* = {
         .tm_sec = 0,            //sec
         .tm_min = 47,           //minute
         .tm_hour = 9,          //hour
-        .tm_mday = 9,          //day of month
-        .tm_mon = 1,            //month
-        .tm_year = 1990,        //year
-        .tm_wday = 2,           //weekday
-        .tm_yday = 44,          //yearday
-        .tm_isdst = -1,         //daylight saving flag
-        .tm_nsec = 1            //nanosec
+        .tm_mday = 15,          //day of month
+        .tm_mon = 2,            //month
+        .tm_year = 2024,        //year
+        .tm_wday = 6,           //weekday
+        
     };
   
     

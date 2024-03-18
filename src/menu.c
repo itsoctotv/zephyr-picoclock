@@ -174,17 +174,17 @@ int switchToDate(const struct device *dev, const struct device *rtc){
     gpio_pin_configure_dt(&button2, GPIO_INPUT);
     gpio_pin_configure_dt(&button3, GPIO_INPUT);
 
-    struct rtc_time time;
+    struct rtc_time time2;
 
-    rtc_get_time(rtc, &time);
+    rtc_get_time(rtc, &time2);
     while(true){
         k_msleep(250);
         
         displayChar(dev,POS1,POSY,'0');
-        displayChar(dev,POS2,POSY,time.tm_mday + '0');
+        displayChar(dev,POS2,POSY,time2.tm_mday + '0');
         displayChar(dev,POSCOL,POSY,'.');
         displayChar(dev,POS3,POSY,'0');
-        displayChar(dev,POS4,POSY,time.tm_mon + '0');
+        displayChar(dev,POS4,POSY,time2.tm_mon + '0');
         int val = gpio_pin_get_dt(&button3);
 
         if(val != 0){
@@ -196,23 +196,28 @@ int switchToDate(const struct device *dev, const struct device *rtc){
             k_msleep(250);
             clearDisplay(dev);
             //because zephyr bcd function only returns an 8bit value and the year is a 4digit(16bit) value split it into two 8bit vals and treat them seperate
-                        
-            int year1 = time.tm_year / 100;
-            int year2 = time.tm_year % 100;
-            printf("year rtc: %d\n", time.tm_year);
+            int year = time2.tm_year;
+            printf("year general: %d\n", year);
+            int year1 = time2.tm_year / 100;
+            printf("year1: %d\n", year1);
+            
+            printf("year1 roudnund: %d\n", ROUND_UP(year1,20));
+            
+            int year2 = time2.tm_year % 100;
+            printf("year rtc: %d\n", time2.tm_year);
             printf("year 1: %d\nyear 2: %d\n", year1, year2);
             
             uint8_t bcdFirstHalf = bin2bcd(year1);
             uint8_t bcdSecondHalf = bin2bcd(year2);
             uint8_t mask = 0b00001111;
             
-            uint8_t firstDigit = ((bcdFirstHalf >> 4) & mask) + 0x30;
+            uint8_t firstDigit = (bcdFirstHalf & (mask << 4)) + 0x30;
             
-            uint8_t secondDigit = ((bcdFirstHalf >> 0) & mask) + 0x30;
+            uint8_t secondDigit = (bcdFirstHalf & (mask << 0)) + 0x30;
             
-            uint8_t thirdDigit = ((bcdSecondHalf >> 4) & mask) + 0x30;
+            uint8_t thirdDigit = (bcdSecondHalf & (mask << 4)) + 0x30;
             
-            uint8_t fourthDigit = ((bcdSecondHalf >> 0) & mask) + 0x30;
+            uint8_t fourthDigit = (bcdSecondHalf & (mask << 0)) + 0x30;
 
             while(true){
                 
@@ -274,7 +279,7 @@ int switchToMenu(const struct device *dev){
             int toggleOption = gpio_pin_get_dt(&button2);
 
             if(toggleOption != 0){
-                
+                  
                 f_autolight = !f_autolight; //toggle the flag
                 k_msleep(250);
                 clearChar(dev, POS3, POSY);
